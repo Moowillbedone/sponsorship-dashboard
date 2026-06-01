@@ -441,19 +441,24 @@ function setupRefresh(){
 function showRefreshGuide(){
   if(document.getElementById('rg-modal')) return;
   const m=document.createElement('div'); m.id='rg-modal'; m.className='modal-backdrop';
-  m.innerHTML=`<div class="modal">
+  m.innerHTML=`<div class="modal" style="max-width:580px">
     <div class="modal-head"><b>데이터 갱신하기</b><button class="modal-x" id="rg-x">✕</button></div>
-    <p class="modal-desc">어드민 API는 사내 인증이 필요해 <b>어드민에 로그인한 브라우저</b>에서 직접 수집합니다. 아래 순서로 최신 데이터를 반영하세요. (약 2~3분)</p>
-    <ol class="modal-steps">
-      <li><b>admin2.grip.show</b> 에 로그인</li>
-      <li><b>F12 → Console</b> 탭 열기</li>
-      <li>아래 <b>수집 스크립트 복사</b> → 콘솔에 붙여넣고 Enter <span class="modal-dim">(붙여넣기가 막히면 <code>allow pasting</code> 입력 후 재시도)</span></li>
-      <li>자동 다운로드된 <code>gem-snapshot.json</code> 을 레포 <code>data/snapshot.json</code> 으로 교체</li>
-      <li><code>git push</code> → 1~2분 후 자동 재배포·반영</li>
-    </ol>
-    <div class="modal-actions">
-      <button class="btn-primary" id="rg-copy">📋 수집 스크립트 복사</button>
-      <a class="btn-ghost" href="collect.js" download>파일 다운로드</a>
+    <p class="modal-desc">각 데이터는 <b>해당 사이트에 로그인한 브라우저</b>의 F12 콘솔에 스크립트를 붙여넣어 수집합니다 <span class="modal-dim">(붙여넣기가 막히면 <code>allow pasting</code> 입력)</span>. 다운로드된 JSON을 레포 <code>data/</code> 에 교체하고 <code>git push</code> 하면 1~2분 후 자동 반영됩니다.</p>
+    <div class="src-list">
+      <div class="src-item">
+        <div class="src-info"><b>① 젬 데이터</b> <span class="src-site">admin2.grip.show</span><div class="src-file">→ data/snapshot.json</div></div>
+        <div class="src-btns"><button class="btn-mini" data-copy="collect.js">복사</button><a class="btn-mini ghost" href="collect.js" download>파일</a></div>
+      </div>
+      <div class="src-item">
+        <div class="src-info"><b>② 광고 SDK</b> <span class="src-site">partners.adpopcorn.com</span><div class="src-file">→ data/ads-sdk.json</div></div>
+        <div class="src-btns"><button class="btn-mini" data-copy="collect-ads-sdk.js">복사</button><a class="btn-mini ghost" href="collect-ads-sdk.js" download>파일</a></div>
+      </div>
+      <div class="src-item">
+        <div class="src-info"><b>③ 광고 SSP</b> <span class="src-site">console.adpopcorn.com</span><div class="src-file">→ data/ads-ssp.json</div></div>
+        <div class="src-btns"><button class="btn-mini" data-copy="collect-ads-ssp.js">복사</button><a class="btn-mini ghost" href="collect-ads-ssp.js" download>파일</a></div>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px">
       <button class="btn-ghost" id="rg-reload">페이지 새로고침</button>
     </div>
   </div>`;
@@ -462,18 +467,22 @@ function showRefreshGuide(){
   m.addEventListener('click',e=>{ if(e.target===m) close(); });
   document.getElementById('rg-x').onclick=close;
   document.getElementById('rg-reload').onclick=()=>location.reload();
-  document.getElementById('rg-copy').onclick=async()=>{
-    try{ const t=await (await fetch('collect.js?t='+Date.now())).text(); await navigator.clipboard.writeText(t); toast('수집 스크립트를 복사했습니다. 어드민 콘솔에 붙여넣으세요.'); }
-    catch(e){ toast('복사 실패 — 옆의 파일 다운로드를 이용하세요.', true); }
-  };
+  m.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
+    try{ const t=await (await fetch(b.dataset.copy+'?t='+Date.now())).text(); await navigator.clipboard.writeText(t); toast(b.dataset.copy+' 복사됨 — 해당 사이트 콘솔에 붙여넣으세요'); }
+    catch(e){ toast('복사 실패 — 파일 다운로드를 이용하세요', true); }
+  });
 }
 
 /* ---------- init ---------- */
 async function init(){
   try{
-    const [sr,ar] = await Promise.all([fetch('data/snapshot.json?t='+Date.now()), fetch('data/ads.json?t='+Date.now())]);
+    const [sr,sdkr,sspr] = await Promise.all([
+      fetch('data/snapshot.json?t='+Date.now()),
+      fetch('data/ads-sdk.json?t='+Date.now()),
+      fetch('data/ads-ssp.json?t='+Date.now())
+    ]);
     DATA = await sr.json();
-    ADS = await ar.json();
+    ADS = { meta:{}, sdk: await sdkr.json(), ssp: await sspr.json() };
     renderMeta(); renderAds(); renderGems(); renderSpons(); renderPurch();
     buildAds(); built.ads=true;
     $('#loading').style.display='none';

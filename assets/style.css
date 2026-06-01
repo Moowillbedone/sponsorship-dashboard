@@ -206,6 +206,16 @@ body{
 .btn-primary:hover{background:#54e6a8}
 .btn-ghost{font-family:inherit;font-weight:600;font-size:13px;background:rgba(255,255,255,.04);color:var(--text-mid);border:1px solid var(--border);padding:10px 16px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-block;transition:.15s}
 .btn-ghost:hover{border-color:var(--mint);color:var(--mint)}
+.src-list{display:flex;flex-direction:column;gap:8px;margin:4px 0}
+.src-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:11px 14px}
+.src-info b{font-size:13.5px}
+.src-site{font-size:11.5px;color:var(--mint);margin-left:5px}
+.src-file{font-size:11px;color:var(--text-dim);font-family:var(--mono);margin-top:3px}
+.src-btns{display:flex;gap:6px;flex-shrink:0}
+.btn-mini{font-family:inherit;font-size:12px;font-weight:600;background:var(--mint);color:#04130c;border:0;padding:7px 13px;border-radius:8px;cursor:pointer;text-decoration:none;transition:.15s}
+.btn-mini:hover{background:#54e6a8}
+.btn-mini.ghost{background:rgba(255,255,255,.05);color:var(--text-mid);border:1px solid var(--border)}
+.btn-mini.ghost:hover{border-color:var(--mint);color:var(--mint);background:var(--mint-glow)}
 
 /* toast */
 .toast{
