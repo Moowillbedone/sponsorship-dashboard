@@ -442,7 +442,7 @@ function renderSponsorSource(){
   const settleFee=SETTLE?SETTLE.kpi.totalFee:0;
   const purchNet=(DATA.purch&&DATA.purch.kpi)?Math.round(DATA.purch.kpi.totalPrice*0.1):0;
   return `
-    ${sectionHead('🔍 후원 재원 분석 — 그리퍼가 받은 젬은 어디서 왔나','후원된 젬의 출처(결제 vs 광고) 추정','젬은 출처가 섞이는 재화라 후원에 쓰인 젬의 정확한 출처 추적은 어렵습니다. 대신 전체 유저 적립의 경로별 금액 비율로 후원받은 젬(확정 후원액)의 출처를 추정합니다. 적립 출처 = 인앱결제(유료 충전)·광고미션(무료 적립)·수기지급. ※ 건수는 광고가 16배 많지만 금액은 결제가 광고의 34배 — 후원 재원의 대부분이 결제 젬.')}
+    ${sectionHead('🔍 후원 재원 분석 — 그리퍼가 받은 젬은 어디서 왔나','후원된 젬의 출처(결제 vs 광고) 추정','젬은 출처가 섞이는 재화라 후원에 쓰인 젬의 정확한 출처 추적은 어렵습니다. 대신 전체 유저 적립의 경로별 금액 비율로 후원받은 젬(확정 후원액)의 출처를 추정합니다. 적립 출처 = 인앱결제(유료 충전)·광고미션(무료 적립)·수기지급(2025-12 QA 테스트 지급분 제외). ※ 건수는 광고가 16배 많지만 금액은 결제가 광고의 34배 — 후원 재원의 대부분이 결제 젬.')}
     <div class="grid c2">
       <div class="card">
         <div class="card-head"><div class="card-title">유저 적립 젬의 경로별 금액</div><div class="card-meta">후원 재원 풀 · 단위 젬</div></div>
