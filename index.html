@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>후원하기 대시보드 · Gem Analytics</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <div class="brand-text">
+        <h1>후원하기 대시보드</h1>
+        <p>Gem Analytics · 유저 · 그리퍼 · 결제</p>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="gems">유저 젬</button>
+      <button class="tab" data-view="spons">그리퍼 젬</button>
+      <button class="tab" data-view="purch">젬 결제</button>
+    </nav>
+    <div class="status">
+      <div class="status-meta">
+        <span class="status-range" id="dateRange">—</span>
+        <span class="status-updated" id="updatedAt">—</span>
+      </div>
+      <button class="refresh-btn" id="refreshBtn" title="어드민에서 최신 데이터 가져오기">
+        <span class="refresh-ico">↻</span> 새로고침
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="loading" id="loading">데이터 불러오는 중…</div>
+    <section class="view" id="view-gems"></section>
+    <section class="view hidden" id="view-spons"></section>
+    <section class="view hidden" id="view-purch"></section>
+  </main>
+
+  <footer class="footer">
+    <span>데이터 출처: admin2.grip.show · 자동 집계</span>
+    <span class="footer-dim">민감 데이터 · 비공개 (noindex)</span>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

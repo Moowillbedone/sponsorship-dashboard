@@ -1,0 +1,10 @@
+node_modules/
+.vercel/
+.DS_Store
+*.log
+.env
+.env.local
+data/raw-*.json
+# vercel CLI가 생성하는 불필요 파일 (정적 사이트)
+package.json
+package-lock.json
