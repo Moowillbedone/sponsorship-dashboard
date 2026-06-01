@@ -77,6 +77,51 @@ function barList(rows, max){
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function legend(items){ return `<div class="legend">`+items.map(i=>`<div class="legend-item"><span class="legend-dot" style="background:${i.color}"></span>${i.label}</div>`).join('')+`</div>`; }
 
+/* ---------- 기간별 리스트 (일/주/월 토글 + 페이지네이션) ---------- */
+const periodState={}, PERIOD_CFG={};
+const _p2=n=>String(n).padStart(2,'0');
+function weekKey(ds){ const d=new Date(ds+'T00:00:00'); const day=d.getDay(); d.setDate(d.getDate()+(day===0?-6:1-day)); return d.getFullYear()+'-'+_p2(d.getMonth()+1)+'-'+_p2(d.getDate()); }
+function aggPeriod(daily, period, fields){
+  if(period==='day') return daily.map(d=>Object.assign({key:d.date}, d));
+  const g={};
+  for(const row of daily){ const k=period==='week'?weekKey(row.date):row.date.slice(0,7); if(!g[k]){g[k]={key:k}; fields.forEach(f=>g[k][f]=0);} fields.forEach(f=>g[k][f]+=(row[f]||0)); }
+  return Object.values(g).sort((a,b)=>a.key<b.key?-1:1);
+}
+function setupPeriod(key, daily, fields){ PERIOD_CFG[key]={daily,fields}; if(!periodState[key]) periodState[key]={period:'day',page:0}; }
+function periodHTML(key, title){
+  return `<div class="card period-card">
+    <div class="card-head"><div class="card-title">${title||'기간별 리스트'}</div>
+      <div class="period-toggle">
+        <button class="ptab active" data-pk="${key}" data-pv="day">일별</button>
+        <button class="ptab" data-pk="${key}" data-pv="week">주별</button>
+        <button class="ptab" data-pk="${key}" data-pv="month">월별</button>
+      </div></div>
+    <div id="ptable-${key}"></div>
+  </div>`;
+}
+function renderPeriodTable(key){
+  const cfg=PERIOD_CFG[key], st=periodState[key]; if(!cfg||!document.getElementById('ptable-'+key)) return;
+  const rows=aggPeriod(cfg.daily, st.period, cfg.fields.map(f=>f.f)).reverse();
+  const PER=14, pages=Math.max(1,Math.ceil(rows.length/PER));
+  if(st.page>=pages) st.page=pages-1; if(st.page<0) st.page=0;
+  const pr=rows.slice(st.page*PER,(st.page+1)*PER);
+  const dlabel=st.period==='month'?'월':st.period==='week'?'주 시작':'날짜';
+  const head=`<div class="ptable-row ptable-head"><div>${dlabel}</div>${cfg.fields.map(f=>`<div>${f.label}</div>`).join('')}</div>`;
+  const body=pr.map(r=>`<div class="ptable-row"><div class="ptable-date">${r.key}</div>${cfg.fields.map(f=>`<div>${(f.fmt||fmt)(r[f.f]||0)}</div>`).join('')}</div>`).join('');
+  const pager=pages>1?`<div class="pager"><button class="pgbtn" data-pk="${key}" data-pg="${st.page-1}" ${st.page===0?'disabled':''}>‹</button><span>${st.page+1} / ${pages} · 총 ${rows.length}</span><button class="pgbtn" data-pk="${key}" data-pg="${st.page+1}" ${st.page>=pages-1?'disabled':''}>›</button></div>`:`<div class="pager"><span>총 ${rows.length}건</span></div>`;
+  document.getElementById('ptable-'+key).innerHTML=`<div class="ptable" style="grid-template-columns:minmax(84px,1.1fr) repeat(${cfg.fields.length},1fr)">${head}${body}</div>${pager}`;
+}
+let __pBound=false;
+function bindPeriodEvents(){
+  if(__pBound) return; __pBound=true;
+  document.addEventListener('click', e=>{
+    const tb=e.target.closest('button[data-pv]');
+    if(tb){ const k=tb.dataset.pk; periodState[k].period=tb.dataset.pv; periodState[k].page=0; document.querySelectorAll(`button[data-pk="${k}"][data-pv]`).forEach(b=>b.classList.toggle('active',b===tb)); renderPeriodTable(k); return; }
+    const pg=e.target.closest('button[data-pg]');
+    if(pg && !pg.disabled){ const k=pg.dataset.pk; periodState[k].page=+pg.dataset.pg; renderPeriodTable(k); }
+  });
+}
+
 function lineChart(id, labels, datasets){
   const cv=document.getElementById(id); if(!cv) return; const ctx=cv.getContext('2d');
   datasets.forEach(d=>{ if(d.fill) d.backgroundColor=gradient(ctx,d._c); d.borderColor=d._c; d.borderWidth=2; d.tension=.35; d.pointRadius=0; d.pointHoverRadius=4; d.pointHoverBackgroundColor=d._c; d.pointHoverBorderColor='#08110d'; d.pointHoverBorderWidth=2; });
@@ -157,7 +202,9 @@ function renderGems(){
         <div class="card-head"><div class="card-title">🔥 Top 사용 유저</div><div class="card-meta">후원 등에 가장 많이 쓴</div></div>
         ${rankList(g.topUse.slice(0,10), r=>fmtKor(r.amount)+' 젬', C.blue)}
       </div>
-    </div>`;
+    </div>
+    ${sectionHead('기간별 젬 추이','일 / 주 / 월 단위 · 단위 젬')}
+    ${periodHTML('gems','적립 · 사용 · 만료 · 거래건수')}`;
   $('#view-gems').innerHTML = html;
 }
 function refLabel(r){ return ({REWARD:'광고 미션',SPONSORSHIP:'후원',PURCHASE:'인앱 결제',MANUAL_GEM:'수기 지급',undefined:'만료 처리'})[r]||r; }
@@ -170,6 +217,8 @@ function buildGems(){
   ]);
   doughnutChart('g-type', g.byType.map(t=>t.label), g.byType.map(t=>t.count), g.byType.map(t=>TYPE_COLORS[t.label]||C.dim));
   barChart('g-hour', g.hourly.map(h=>h.hour), g.hourly.map(h=>h.count), C.mint, {maxTicks:12,unit:'건'});
+  setupPeriod('gems', g.daily, [{f:'ACCRUAL',label:'적립',fmt:fmtKor},{f:'USE',label:'사용',fmt:fmtKor},{f:'EXPIRED',label:'만료',fmt:fmtKor},{f:'count',label:'거래건수',fmt:fmt}]);
+  renderPeriodTable('gems'); bindPeriodEvents();
 }
 
 /* ===================== SPONS ===================== */
@@ -208,7 +257,9 @@ function renderSpons(){
         <div class="card-head"><div class="card-title">💝 Top 후원 유저</div><div class="card-meta">가장 많이 후원한 팬</div></div>
         ${rankList(s.topSponsors.slice(0,12), r=>fmtKor(r.amount)+' 젬', C.violet)}
       </div>
-    </div>`;
+    </div>
+    ${sectionHead('기간별 후원 추이','일 / 주 / 월 단위')}
+    ${periodHTML('spons','후원젬 · 후원건수 · 취소건')}`;
   $('#view-spons').innerHTML = html;
 }
 function buildSpons(){
@@ -224,6 +275,8 @@ function buildSpons(){
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}}}});
   doughnutChart('s-state', s.byState.map(t=>STATE_LABEL[t.state]||t.state), s.byState.map(t=>t.count), s.byState.map(t=>STATE_COLORS[t.state]||C.dim));
   barChart('s-dist', s.amountDist.map(d=>d.bucket), s.amountDist.map(d=>d.count), C.mint, {maxTicks:8,unit:'건'});
+  setupPeriod('spons', s.daily, [{f:'amount',label:'후원젬',fmt:fmtKor},{f:'count',label:'후원건수',fmt:fmt},{f:'canceled',label:'취소건',fmt:fmt}]);
+  renderPeriodTable('spons'); bindPeriodEvents();
 }
 
 /* ===================== PURCH ===================== */
@@ -256,7 +309,9 @@ function renderPurch(){
     <div class="card" style="margin-top:14px">
       <div class="card-head"><div class="card-title">🏆 Top 결제 유저</div><div class="card-meta">가장 많이 충전한 큰손</div></div>
       <div class="grid c2"><div>${rankList(p.topBuyers.slice(0,6), r=>fmtKor(r.price)+'원', C.mint)}</div><div>${rankList(p.topBuyers.slice(6,12).map((r)=>r), r=>fmtKor(r.price)+'원', C.mint).replace(/rank-no">(\d+)/g,(m,n)=>`rank-no">${+n+6}`)}</div></div>
-    </div>`;
+    </div>
+    ${sectionHead('기간별 결제 추이','일 / 주 / 월 단위')}
+    ${periodHTML('purch','매출(원) · 결제건수')}`;
   $('#view-purch').innerHTML = html;
 }
 function buildPurch(){
@@ -271,6 +326,8 @@ function buildPurch(){
     y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)+'건'},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}${c.dataset.label==='매출'?'원':'건'}`}}}}});
   doughnutChart('p-store', p.byStore.map(t=>STORE_LABEL[t.store]||t.store), p.byStore.map(t=>t.price), p.byStore.map(t=>STORE_COLORS[t.store]||C.dim));
+  setupPeriod('purch', p.daily, [{f:'price',label:'매출(원)',fmt:fmtKor},{f:'count',label:'결제건수',fmt:fmt}]);
+  renderPeriodTable('purch'); bindPeriodEvents();
 }
 
 /* ===================== ADS (광고 수익) ===================== */
@@ -330,7 +387,11 @@ function renderAds(){
           평균 eCPM: <b style="color:var(--blue)">$${eCPM.toFixed(3)}</b>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${sectionHead('기간별 광고 매출 (SDK 오퍼월)','일 / 주 / 월 · 단위 원')}
+    ${periodHTML('adsdk','매출 · AOS · iOS · 완료')}
+    ${sectionHead('기간별 SSP 순매체비','일 / 주 / 월 · 단위 USD')}
+    ${periodHTML('adssp','순매체비 · 노출 · 클릭')}`;
   $('#view-ads').innerHTML = html;
 }
 function buildAds(){
@@ -349,6 +410,9 @@ function buildAds(){
     y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'$'+v.toFixed(1)},border:{display:false}},
     y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmtKor(v)},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?'$'+c.parsed.y.toFixed(4):fmt(c.parsed.y)+'회'}`}}}}});
+  setupPeriod('adsdk', sdk.daily, [{f:'revenue',label:'매출(원)',fmt:fmtKor},{f:'android',label:'AOS',fmt:fmtKor},{f:'ios',label:'iOS',fmt:fmtKor},{f:'complete',label:'완료',fmt:fmt}]);
+  setupPeriod('adssp', ssp.daily, [{f:'cost',label:'순매체비($)',fmt:v=>'$'+fmt2(v)},{f:'impression',label:'노출',fmt:fmt},{f:'click',label:'클릭',fmt:fmt}]);
+  renderPeriodTable('adsdk'); renderPeriodTable('adssp'); bindPeriodEvents();
 }
 
 /* ---------- tabs ---------- */
