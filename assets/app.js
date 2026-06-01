@@ -11,6 +11,7 @@ const fmtKor = n => {
 };
 const pct = (n,d)=> d? (n/d*100):0;
 const MD = iso => iso ? iso.slice(5) : '';
+const fmt2 = n => (n||0).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 /* ---------- palette ---------- */
 const C = {
@@ -40,7 +41,7 @@ Chart.defaults.plugins.tooltip.titleFont = {weight:'700',size:12};
 Chart.defaults.plugins.tooltip.boxPadding = 5;
 Chart.defaults.maintainAspectRatio = false;
 
-let DATA=null; const built={};
+let DATA=null, ADS=null; const built={};
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -272,8 +273,86 @@ function buildPurch(){
   doughnutChart('p-store', p.byStore.map(t=>STORE_LABEL[t.store]||t.store), p.byStore.map(t=>t.price), p.byStore.map(t=>STORE_COLORS[t.store]||C.dim));
 }
 
+/* ===================== ADS (광고 수익) ===================== */
+function renderAds(){
+  const sdk=ADS.sdk, ssp=ADS.ssp, sk=sdk.kpi, sp=ssp.kpi;
+  const eCPM = sp.totalImpression ? (sp.totalCost/sp.totalImpression*1000) : 0;
+  const html = `
+    <div class="kpi-grid">
+      ${kpi('SDK 오퍼월 매출', fmtKor(sk.totalRevenue), '원', `참여완료 ${fmt(sk.totalComplete)}건`, C.mint)}
+      ${kpi('SSP 미디에이션', '$'+fmt2(sp.totalCost), '', `≈ ${fmtKor(Math.round(sp.totalCost*1400))}원`, C.violet)}
+      ${kpi('SSP 노출수', fmtKor(sp.totalImpression), '회', `클릭 ${fmt(sp.totalClick)} · eCPM $${eCPM.toFixed(3)}`, C.blue)}
+      ${kpi('SDK 오퍼월 방문', fmt(sk.totalVisit), '', `참여시도 ${fmt(sk.totalParticipation)}`, C.amber)}
+    </div>
+    ${sectionHead('애드팝콘 SDK · 오퍼월 광고','유저가 광고 보고 젬 적립 · 단위 원(₩)')}
+    <div class="card">
+      <div class="card-head"><div class="card-title">일별 오퍼월 매출 (OS별)</div><div class="card-meta">${sdk.daily.length}일 · 원</div></div>
+      <div class="chart-wrap tall"><canvas id="ad-sdk-daily"></canvas></div>
+      ${legend([{label:'Android',color:C.mint},{label:'iOS',color:C.blue}])}
+    </div>
+    <div class="grid c2" style="margin-top:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">OS별 매출 분포</div><div class="card-meta">원</div></div>
+        <div class="chart-wrap"><canvas id="ad-sdk-os"></canvas></div>
+        ${legend(sdk.byOS.map(o=>({label:`${o.os} ${fmtKor(o.revenue)}원`,color:o.os==='Android'?C.mint:C.blue})))}
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">오퍼월 퍼널</div><div class="card-meta">방문 → 참여 → 완료</div></div>
+        ${barList([
+          {label:'방문자',value:sk.totalVisit,color:C.amber,disp:fmt(sk.totalVisit)},
+          {label:'참여 시도',value:sk.totalParticipation,color:C.teal,disp:fmt(sk.totalParticipation)},
+          {label:'참여 완료',value:sk.totalComplete,color:C.mint,disp:fmt(sk.totalComplete)}
+        ], Math.max(sk.totalVisit,sk.totalParticipation,sk.totalComplete,1))}
+      </div>
+    </div>
+    ${sectionHead('애드팝콘 SSP · 미디에이션 광고','앱 내 광고 지면 수익 · 단위 USD($)')}
+    <div class="card">
+      <div class="card-head"><div class="card-title">일별 순매체비 / 노출수</div><div class="card-meta">${ssp.daily.length}일 · USD</div></div>
+      <div class="chart-wrap tall"><canvas id="ad-ssp-daily"></canvas></div>
+      ${legend([{label:'순매체비($)',color:C.violet},{label:'노출수',color:C.blue}])}
+    </div>
+    <div class="grid c2" style="margin-top:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">SSP 광고 퍼널</div><div class="card-meta">요청 → 응답 → 노출 → 클릭</div></div>
+        ${barList([
+          {label:'요청수',value:sp.totalRequest,color:C.dim,disp:fmtKor(sp.totalRequest)},
+          {label:'응답수',value:sp.totalResponse,color:C.blue,disp:fmtKor(sp.totalResponse)},
+          {label:'노출수',value:sp.totalImpression,color:C.violet,disp:fmt(sp.totalImpression)},
+          {label:'클릭수',value:sp.totalClick,color:C.mint,disp:fmt(sp.totalClick)}
+        ], sp.totalRequest||1)}
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">광고 수익 종합</div><div class="card-meta">전체 기간</div></div>
+        <div style="padding:6px 2px;font-size:13.5px;line-height:2.4;color:var(--text-mid)">
+          SDK 오퍼월: <b style="color:var(--mint)">${fmtKor(sk.totalRevenue)}원</b><br>
+          SSP 미디에이션: <b style="color:var(--violet)">$${fmt2(sp.totalCost)}</b> <span style="color:var(--text-dim);font-size:12px">≈ ${fmtKor(Math.round(sp.totalCost*1400))}원</span><br>
+          합산 추정: <b style="color:var(--text)">${fmtKor(sk.totalRevenue + Math.round(sp.totalCost*1400))}원</b> <span style="color:var(--text-dim);font-size:12px">(SSP 환율 1,400 가정)</span><br>
+          평균 eCPM: <b style="color:var(--blue)">$${eCPM.toFixed(3)}</b>
+        </div>
+      </div>
+    </div>`;
+  $('#view-ads').innerHTML = html;
+}
+function buildAds(){
+  const sdk=ADS.sdk, ssp=ADS.ssp;
+  lineChart('ad-sdk-daily', sdk.daily.map(d=>MD(d.date)), [
+    {label:'Android',data:sdk.daily.map(d=>d.android),_c:C.mint,fill:true},
+    {label:'iOS',data:sdk.daily.map(d=>d.ios),_c:C.blue,fill:false}
+  ]);
+  doughnutChart('ad-sdk-os', sdk.byOS.map(o=>o.os), sdk.byOS.map(o=>o.revenue), sdk.byOS.map(o=>o.os==='Android'?C.mint:C.blue));
+  const cv=document.getElementById('ad-ssp-daily'); if(!cv) return; const ctx=cv.getContext('2d');
+  new Chart(ctx,{data:{labels:ssp.daily.map(d=>MD(d.date)),datasets:[
+    {type:'line',label:'순매체비',data:ssp.daily.map(d=>d.cost),borderColor:C.violet,backgroundColor:gradient(ctx,C.violet),borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:true,yAxisID:'y'},
+    {type:'line',label:'노출수',data:ssp.daily.map(d=>d.impression),borderColor:C.blue,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'}
+  ]},options:{interaction:{mode:'index',intersect:false},scales:{
+    x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},
+    y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'$'+v.toFixed(1)},border:{display:false}},
+    y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmtKor(v)},border:{display:false}}
+  },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?'$'+c.parsed.y.toFixed(4):fmt(c.parsed.y)+'회'}`}}}}});
+}
+
 /* ---------- tabs ---------- */
-const VIEWS = { gems:buildGems, spons:buildSpons, purch:buildPurch };
+const VIEWS = { ads:buildAds, gems:buildGems, spons:buildSpons, purch:buildPurch };
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
@@ -328,10 +407,11 @@ function showRefreshGuide(){
 /* ---------- init ---------- */
 async function init(){
   try{
-    const r = await fetch('data/snapshot.json?t='+Date.now());
-    DATA = await r.json();
-    renderMeta(); renderGems(); renderSpons(); renderPurch();
-    buildGems(); built.gems=true;
+    const [sr,ar] = await Promise.all([fetch('data/snapshot.json?t='+Date.now()), fetch('data/ads.json?t='+Date.now())]);
+    DATA = await sr.json();
+    ADS = await ar.json();
+    renderMeta(); renderAds(); renderGems(); renderSpons(); renderPurch();
+    buildAds(); built.ads=true;
     $('#loading').style.display='none';
     setupTabs(); setupRefresh();
   }catch(e){

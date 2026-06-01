@@ -67,6 +67,7 @@ body{
 }
 .tab:hover{color:var(--text-mid)}
 .tab.active{background:var(--mint);color:#04130c;box-shadow:0 2px 12px var(--mint-glow)}
+.tab-sep{width:1px;height:18px;background:var(--border-strong);align-self:center;margin:0 5px}
 
 .status{display:flex;align-items:center;gap:14px;margin-left:auto}
 .status-meta{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
