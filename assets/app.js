@@ -12,6 +12,7 @@ const fmtKor = n => {
 const pct = (n,d)=> d? (n/d*100):0;
 const MD = iso => iso ? iso.slice(5) : '';
 const fmt2 = n => (n||0).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const won = n => fmt(n)+'원';   // 0원 단위 정확 표기
 
 /* ---------- palette ---------- */
 const C = {
@@ -55,7 +56,8 @@ function kpi(label, value, unit, sub, accent){
     <div class="kpi-value">${value}${unit?`<span class="unit">${unit}</span>`:''}</div>
     ${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
 }
-function sectionHead(t,hint){ return `<div class="section-head"><h2>${t}</h2>${hint?`<span class="hint">${hint}</span>`:''}</div>`; }
+function tip(text){ return text?`<span class="tip" tabindex="0" data-tip="${esc(text)}">i</span>`:''; }
+function sectionHead(t,hint,tipText){ return `<div class="section-head"><h2>${t}${tip(tipText)}</h2>${hint?`<span class="hint">${hint}</span>`:''}</div>`; }
 function rankList(rows, valFn, accent){
   return `<div class="rank">`+rows.map((r,i)=>`
     <div class="rank-row">
@@ -122,6 +124,66 @@ function bindPeriodEvents(){
   });
 }
 
+/* ---------- AI 어드바이저 (데이터 기반 동적 분석 · 갱신 시 자동 변경) ---------- */
+function trend(daily, field, win){
+  win=win||14; const n=daily.length; if(n<win+3) return null;
+  const recent=daily.slice(-win).reduce((a,b)=>a+(+b[field]||0),0);
+  const prev=daily.slice(-win*2,-win).reduce((a,b)=>a+(+b[field]||0),0);
+  if(!prev) return null; return (recent-prev)/prev*100;
+}
+function tBadge(p){ if(p==null) return ''; const up=p>=0; return `<span class="adv-trend ${up?'up':'down'}">${up?'▲':'▼'}${Math.abs(p).toFixed(0)}%</span>`; }
+function advisor(key){
+  const items=[]; const P=n=>n.toFixed(1)+'%';
+  if(key==='gems'){
+    const g=DATA.gems,k=g.kpi; const useRate=k.accrualAmt?k.useAmt/k.accrualAmt*100:0, expRate=k.accrualAmt?k.expireAmt/k.accrualAmt*100:0;
+    const tAcc=trend(g.daily,'ACCRUAL'),tUse=trend(g.daily,'USE');
+    items.push(['insight',`적립 젬의 <b>${P(useRate)}</b>가 사용됨 — 젬이 ${useRate>80?'활발히 순환되는 건전한':'다소 정체된'} 경제 ${tBadge(tAcc)}`]);
+    items.push(['insight',`사용처의 대부분이 <b>후원</b> — 젬의 핵심 효용은 그리퍼 후원이며 그 외 소비처는 미미`]);
+    if(expRate>1) items.push(['bad',`적립 대비 <b>${P(expRate)}</b>가 만료 소멸 — 유효기간 임박 알림·만료예정 이벤트로 추가 소비를 유도하면 사장되는 젬을 후원으로 전환 가능`]);
+    else items.push(['good',`만료율 ${P(expRate)}로 낮음 — 발행된 젬이 사장되지 않고 잘 소비됨`]);
+    items.push(['todo',`광고미션 적립이 압도적 → <b>광고 인벤토리 확대</b>가 곧 젬 발행량↑ = 후원 잠재력↑`]);
+    if(useRate<75) items.push(['todo',`적립 대비 소비 ${P(useRate)} → 후원 외 소비처(굿즈·뱃지·부스팅) 확대로 순환 가속`]);
+    if(tUse!=null) items.push(['impact',`최근 2주 젬 사용 ${tBadge(tUse)} — ${tUse>=0?'후원 활성화가 지속되는 긍정 신호':'후원 동력 약화 신호 → 한정 후원 이벤트로 부양 필요'}`]);
+    items.push(['impact',`적립>사용으로 쌓인 미사용 잔액은 <b>잠재 후원 여력</b> — 소비 전환을 자극하면 그리퍼 매출로 직결`]);
+  } else if(key==='spons'){
+    const s=DATA.spons,k=s.kpi; const cancel=k.cancelRate*100;
+    const perG=k.uniqueGrippers?k.confirmedAmt/k.uniqueGrippers:0, perS=k.uniqueSponsors?k.confirmedAmt/k.uniqueSponsors:0;
+    const top10=s.topGrippers.slice(0,10).reduce((a,b)=>a+b.amount,0), top10R=k.confirmedAmt?top10/k.confirmedAmt*100:0;
+    const tAmt=trend(s.daily,'amount');
+    items.push(['insight',`후원 취소율 <b>${P(cancel)}</b> — ${cancel<1?'매우 안정적, 후원 경험 신뢰도가 높음':'다소 높아 점검 필요'} ${tBadge(tAmt)}`]);
+    items.push(['insight',`그리퍼 1인 평균 <b>${fmtKor(perG)}젬</b> 수령 · 후원자 1인 평균 <b>${fmtKor(perS)}젬</b> 후원`]);
+    if(top10R>50) items.push(['bad',`상위 10 그리퍼가 후원의 <b>${P(top10R)}</b> 차지 — 소수 의존 리스크, 중간층 그리퍼 육성 필요`]);
+    else items.push(['good',`상위 10 그리퍼 비중 ${P(top10R)} — 후원이 비교적 여러 그리퍼에 분산됨`]);
+    items.push(['todo',`Top 그리퍼 리텐션 케어 + 신규 그리퍼 온보딩(첫 후원 매칭)으로 후원 저변 확대`]);
+    items.push(['todo',`후원자 ${fmt(k.uniqueSponsors)}명 → 미후원 활성 유저 대상 <b>첫 후원 보너스 젬</b>으로 전환 유도`]);
+    if(tAmt!=null) items.push(['impact',`최근 2주 후원액 ${tBadge(tAmt)} — ${tAmt>=0?'후원 생태계 성장 중':'하락 추세, 라이브 연계 후원 이벤트로 부양 권장'}`]);
+  } else if(key==='purch'){
+    const p=DATA.purch,k=p.kpi; const arppu=k.uniqueBuyers?k.totalPrice/k.uniqueBuyers:0;
+    const goog=p.byStore.find(x=>x.store==='GOOGLE_PLAY'),googR=goog&&k.totalPrice?goog.price/k.totalPrice*100:0;
+    const tPrice=trend(p.daily,'price');
+    items.push(['insight',`구매자 1인 평균 결제(ARPPU) <b>${fmtKor(arppu)}원</b> · 평균 객단가 ${fmt(k.avgPrice)}원 ${tBadge(tPrice)}`]);
+    items.push(['insight',`유료 충전 젬은 광고 적립과 함께 <b>후원 실탄</b>의 두 축 — 결제는 회사 직접 매출`]);
+    if(googR>60) items.push(['bad',`Google Play 매출 비중 <b>${P(googR)}</b> — iOS 결제 전환이 상대적으로 낮음, iOS 충전 UX 개선 여지`]);
+    items.push(['todo',`고액 결제 Top 유저 = 핵심 과금층 → VIP 혜택·한정 젬 패키지로 LTV 극대화`]);
+    items.push(['todo',`무료 적립→유료 충전 전환 퍼널 최적화로 구매자 수 자체를 확대`]);
+    if(tPrice!=null) items.push(['impact',`최근 2주 결제 매출 ${tBadge(tPrice)} — 직접 매출 ${tPrice>=0?'성장세':'둔화, 충전 프로모션 타이밍'}`]);
+  } else if(key==='ads'){
+    const sk=ADS.sdk.kpi,sp=ADS.ssp.kpi,cp=ADS.coupang; const sspKrw=Math.round(sp.totalCost*1400),cpRev=cp?cp.kpi.totalClientCommission:0;
+    const total=sk.totalRevenue+sspKrw+cpRev; const tSdk=trend(ADS.sdk.daily,'revenue');
+    items.push(['insight',`광고 총수익 약 <b>${fmtKor(total)}원</b> = SDK ${fmtKor(sk.totalRevenue)} + SSP ${fmtKor(sspKrw)} + 쿠팡 ${fmtKor(cpRev)} ${tBadge(tSdk)}`]);
+    items.push(['insight',`오퍼월(SDK)은 유저가 광고 보고 <b>젬 적립</b> → 후원 순환의 입구. 광고수익+젬발행 1석2조`]);
+    if(cp){ const cvr=cp.kpi.totalClick?cp.kpi.totalConversion/cp.kpi.totalClick*100:0; items.push(['good',`쿠팡 파트너스 구매전환율 <b>${P(cvr)}</b>, 38일만에 ${fmtKor(cpRev)}원 — 신규 수익원으로 빠르게 안착`]); }
+    items.push(['bad',`SSP eCPM $${(sp.totalImpression?sp.totalCost/sp.totalImpression*1000:0).toFixed(2)} — 미디에이션 단가 최적화(네트워크 추가·플로어 조정) 여지`]);
+    items.push(['todo',`오퍼월 노출↑ = 젬 발행↑ = 후원 실탄↑ → 광고 인벤토리 확대가 후원 생태계까지 키우는 핵심 레버`]);
+    items.push(['impact',`광고는 <b>유저 비용 부담 0</b>의 순수익 — 트래픽(활성)만 늘면 매출이 비례하는 고마진 구조`]);
+  }
+  const icon={insight:'💡',good:'✅',bad:'⚠️',todo:'🎯',impact:'🚀'}, lab={insight:'핵심 인사이트',good:'강점',bad:'주의·약점',todo:'개선 액션',impact:'비즈니스 임팩트'};
+  const grp={}; items.forEach(([t,x])=>{(grp[t]=grp[t]||[]).push(x);});
+  const ord=['insight','good','bad','todo','impact'];
+  return `<div class="card advisor"><div class="card-head"><div class="card-title">🤖 AI 어드바이저</div><div class="card-meta">데이터 기반 자동 분석 · 갱신 시 자동 변경</div></div>
+    <div class="adv-grid">${ord.filter(t=>grp[t]).map(t=>`<div class="adv-block adv-${t}"><div class="adv-h">${icon[t]} ${lab[t]}</div><ul>${grp[t].map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div>`;
+}
+
 function lineChart(id, labels, datasets){
   const cv=document.getElementById(id); if(!cv) return; const ctx=cv.getContext('2d');
   datasets.forEach(d=>{ if(d.fill) d.backgroundColor=gradient(ctx,d._c); d.borderColor=d._c; d.borderWidth=2; d.tension=.35; d.pointRadius=0; d.pointHoverRadius=4; d.pointHoverBackgroundColor=d._c; d.pointHoverBorderColor='#08110d'; d.pointHoverBorderWidth=2; });
@@ -166,7 +228,8 @@ function renderGems(){
       ${kpi('총 사용', fmtKor(k.useAmt), '젬', `적립 대비 <span class="pos">${usePerAcc.toFixed(0)}%</span> 소비`, C.blue)}
       ${kpi('순 유통 젬', fmtKor(k.netCirc), '젬', `만료 ${fmtKor(k.expireAmt)} · 회수 ${fmtKor(k.retAmt)}`, C.amber)}
     </div>
-    ${sectionHead('일별 적립 vs 사용 추이','젬이 어떻게 쌓이고 소비되는지')}
+    ${advisor('gems')}
+    ${sectionHead('일별 적립 vs 사용 추이','젬이 어떻게 쌓이고 소비되는지','젬 = 유저가 광고미션·인앱결제·후원받기로 획득해 후원에 쓰는 앱 내 재화. 적립=획득, 사용=소비(후원 등), 만료=유효기간(약 90일) 경과 소멸. admin2 젬 거래내역(gemHistoryType)을 발생일시 기준으로 일별 집계.')}
     <div class="card">
       <div class="card-head"><div class="card-title">일별 젬 흐름</div><div class="card-meta">${g.daily.length}일 · 단위 젬</div></div>
       <div class="chart-wrap tall"><canvas id="g-daily"></canvas></div>
@@ -231,7 +294,8 @@ function renderSpons(){
       ${kpi('활동 그리퍼', fmt(k.uniqueGrippers), '명', `후원받은 크리에이터 수`, C.violet)}
       ${kpi('후원 유저', fmt(k.uniqueSponsors), '명', `취소율 <span class="${k.cancelRate>0.01?'neg':'pos'}">${(k.cancelRate*100).toFixed(2)}%</span>`, C.blue)}
     </div>
-    ${sectionHead('일별 후원 추이','그리퍼들이 받는 후원의 흐름')}
+    ${advisor('spons')}
+    ${sectionHead('일별 후원 추이','그리퍼들이 받는 후원의 흐름','그리퍼 = 라이브 방송 크리에이터. 유저가 보유 젬으로 그리퍼를 후원한 내역(sponsorships/list)을 후원일시 기준 집계. 후원 젬=확정 후원액(confirmedGemAmount), 취소=후원 취소/부분취소 건. 유저 젬의 "사용"과 정확히 일치(검증됨).')}
     <div class="card">
       <div class="card-head"><div class="card-title">일별 후원 젬 / 건수</div><div class="card-meta">${s.daily.length}일</div></div>
       <div class="chart-wrap tall"><canvas id="s-daily"></canvas></div>
@@ -289,7 +353,8 @@ function renderPurch(){
       ${kpi('판매 젬', fmtKor(k.totalGem), '젬', `유료 충전된 젬`, C.amber)}
       ${kpi('구매 유저', fmt(k.uniqueBuyers), '명', `평균 결제 <b style="color:var(--text)">${fmt(k.avgPrice)}원</b>`, C.blue)}
     </div>
-    ${sectionHead('일별 매출 추이','인앱 결제 흐름')}
+    ${advisor('purch')}
+    ${sectionHead('일별 매출 추이','인앱 결제 흐름','유저가 젬을 유료로 충전한 인앱 결제 내역(gem-purchases). 매출=실결제 금액(price, 원), 판매 젬=충전된 젬 수량. 스토어=Google Play/App Store. 광고 적립과 함께 후원 재화(젬)의 두 공급원 중 유료 축이며 회사 직접 매출.')}
     <div class="card">
       <div class="card-head"><div class="card-title">일별 결제 매출 / 건수</div><div class="card-meta">${p.daily.length}일 · 단위 원</div></div>
       <div class="chart-wrap tall"><canvas id="p-daily"></canvas></div>
@@ -332,7 +397,7 @@ function buildPurch(){
 
 /* ===================== ADS (광고 수익) ===================== */
 function renderAds(){
-  const sdk=ADS.sdk, ssp=ADS.ssp, sk=sdk.kpi, sp=ssp.kpi;
+  const sdk=ADS.sdk, ssp=ADS.ssp, cp=ADS.coupang, sk=sdk.kpi, sp=ssp.kpi;
   const eCPM = sp.totalImpression ? (sp.totalCost/sp.totalImpression*1000) : 0;
   const html = `
     <div class="kpi-grid">
@@ -341,7 +406,8 @@ function renderAds(){
       ${kpi('SSP 노출수', fmtKor(sp.totalImpression), '회', `클릭 ${fmt(sp.totalClick)} · eCPM $${eCPM.toFixed(3)}`, C.blue)}
       ${kpi('SDK 오퍼월 방문', fmt(sk.totalVisit), '', `참여시도 ${fmt(sk.totalParticipation)}`, C.amber)}
     </div>
-    ${sectionHead('애드팝콘 SDK · 오퍼월 광고','유저가 광고 보고 젬 적립 · 단위 원(₩)')}
+    ${advisor('ads')}
+    ${sectionHead('애드팝콘 SDK · 오퍼월 광고','유저가 광고 보고 젬 적립 · 단위 원(₩)','오퍼월 = 앱 내 "광고 보고 젬 받기" 미션 지면. 유저가 광고 참여를 완료하면 그립이 받는 광고 수익. partners.adpopcorn.com 기준이며, 매출은 순수익(정산 출금 금액과 정확히 일치 검증). 방문→참여시도→완료 퍼널. PlatformType 1=iOS, 2=Android.')}
     <div class="card">
       <div class="card-head"><div class="card-title">일별 오퍼월 매출 (OS별)</div><div class="card-meta">${sdk.daily.length}일 · 원</div></div>
       <div class="chart-wrap tall"><canvas id="ad-sdk-daily"></canvas></div>
@@ -362,7 +428,7 @@ function renderAds(){
         ], Math.max(sk.totalVisit,sk.totalParticipation,sk.totalComplete,1))}
       </div>
     </div>
-    ${sectionHead('애드팝콘 SSP · 미디에이션 광고','앱 내 광고 지면 수익 · 단위 USD($)')}
+    ${sectionHead('애드팝콘 SSP · 미디에이션 광고','앱 내 광고 지면 수익 · 단위 USD($)','SSP/미디에이션 = 앱의 배너·전면 등 광고 지면을 여러 광고 네트워크에 경매·중개해 얻는 수익. 순매체비=매체사(그립) 정산액(USD). 요청→응답→노출→클릭 퍼널. eCPM=노출 1,000회당 수익(단가 지표). console.adpopcorn 기준.')}
     <div class="card">
       <div class="card-head"><div class="card-title">일별 순매체비 / 노출수</div><div class="card-meta">${ssp.daily.length}일 · USD</div></div>
       <div class="chart-wrap tall"><canvas id="ad-ssp-daily"></canvas></div>
@@ -391,7 +457,22 @@ function renderAds(){
     ${sectionHead('기간별 광고 매출 (SDK 오퍼월)','일 / 주 / 월 · 단위 원')}
     ${periodHTML('adsdk','매출 · AOS · iOS · 완료')}
     ${sectionHead('기간별 SSP 순매체비','일 / 주 / 월 · 단위 USD')}
-    ${periodHTML('adssp','순매체비 · 노출 · 클릭')}`;
+    ${periodHTML('adssp','순매체비 · 노출 · 클릭')}
+    ${cp ? `
+    ${sectionHead('애드팝콘 파트너스 · 쿠팡 광고','유저가 쿠팡 광고로 구매 시 수수료 수익 · 2026-04말 시작 · 단위 원','쿠팡 파트너스(CPS) = 유저가 앱 내 쿠팡 광고를 통해 실제 상품을 구매하면 발생하는 제휴 수수료. 순매체비=우리 최종 수익(client_commission, 거래액의 약 4%). 거래액(GMV)=구매금액-취소금액. 구매전환율=구매수/클릭수. console.adpopcorn 파트너 리포트 기준, 2026년 4월말 도입.')}
+    <div class="kpi-grid">
+      ${kpi('쿠팡 순매체비', won(cp.kpi.totalClientCommission), '', '우리 최종 수익', C.amber)}
+      ${kpi('거래액(GMV)', fmtKor(cp.kpi.totalRevenue), '원', `구매 ${fmt(cp.kpi.totalConversion)}건`, C.mint)}
+      ${kpi('클릭 수', fmt(cp.kpi.totalClick), '회', `구매전환 ${(cp.kpi.totalConversion/cp.kpi.totalClick*100).toFixed(1)}%`, C.blue)}
+      ${kpi('객단가', fmtKor(cp.kpi.totalConversion?cp.kpi.totalConvRevenue/cp.kpi.totalConversion:0), '원', '구매 1건당 금액', C.violet)}
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">일별 쿠팡 순매체비 / 클릭</div><div class="card-meta">${cp.daily.length}일 · 원</div></div>
+      <div class="chart-wrap tall"><canvas id="ad-cp-daily"></canvas></div>
+      ${legend([{label:'순매체비(원)',color:C.amber},{label:'클릭수',color:C.blue}])}
+    </div>
+    ${sectionHead('기간별 쿠팡 파트너스','일 / 주 / 월 · 순매체비 = 우리 수익')}
+    ${periodHTML('adcp','순매체비 · 거래액 · 구매 · 클릭')}` : ''}`;
   $('#view-ads').innerHTML = html;
 }
 function buildAds(){
@@ -410,9 +491,19 @@ function buildAds(){
     y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'$'+v.toFixed(1)},border:{display:false}},
     y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmtKor(v)},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?'$'+c.parsed.y.toFixed(4):fmt(c.parsed.y)+'회'}`}}}}});
-  setupPeriod('adsdk', sdk.daily, [{f:'revenue',label:'매출(원)',fmt:fmtKor},{f:'android',label:'AOS',fmt:fmtKor},{f:'ios',label:'iOS',fmt:fmtKor},{f:'complete',label:'완료',fmt:fmt}]);
+  setupPeriod('adsdk', sdk.daily, [{f:'revenue',label:'매출',fmt:won},{f:'android',label:'AOS',fmt:won},{f:'ios',label:'iOS',fmt:won},{f:'complete',label:'완료',fmt:fmt}]);
   setupPeriod('adssp', ssp.daily, [{f:'cost',label:'순매체비($)',fmt:v=>'$'+fmt2(v)},{f:'impression',label:'노출',fmt:fmt},{f:'click',label:'클릭',fmt:fmt}]);
-  renderPeriodTable('adsdk'); renderPeriodTable('adssp'); bindPeriodEvents();
+  if(ADS.coupang){
+    const cp=ADS.coupang, cc=document.getElementById('ad-cp-daily');
+    if(cc){ const cx=cc.getContext('2d');
+      new Chart(cx,{data:{labels:cp.daily.map(d=>MD(d.date)),datasets:[
+        {type:'line',label:'순매체비',data:cp.daily.map(d=>d.revenue),borderColor:C.amber,backgroundColor:gradient(cx,C.amber),borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:true,yAxisID:'y'},
+        {type:'line',label:'클릭수',data:cp.daily.map(d=>d.click),borderColor:C.blue,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'}
+      ]},options:{interaction:{mode:'index',intersect:false},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmtKor(v)},border:{display:false}},y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)},border:{display:false}}},plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?won(c.parsed.y):fmt(c.parsed.y)+'회'}`}}}}});
+    }
+    setupPeriod('adcp', cp.daily, [{f:'revenue',label:'순매체비',fmt:won},{f:'grossRevenue',label:'거래액',fmt:won},{f:'conversion',label:'구매',fmt:fmt},{f:'click',label:'클릭',fmt:fmt}]);
+  }
+  renderPeriodTable('adsdk'); renderPeriodTable('adssp'); if(ADS.coupang) renderPeriodTable('adcp'); bindPeriodEvents();
 }
 
 /* ---------- tabs ---------- */
@@ -457,6 +548,10 @@ function showRefreshGuide(){
         <div class="src-info"><b>③ 광고 SSP</b> <span class="src-site">console.adpopcorn.com</span><div class="src-file">→ data/ads-ssp.json</div></div>
         <div class="src-btns"><button class="btn-mini" data-copy="collect-ads-ssp.js">복사</button><a class="btn-mini ghost" href="collect-ads-ssp.js" download>파일</a></div>
       </div>
+      <div class="src-item">
+        <div class="src-info"><b>④ 광고 쿠팡</b> <span class="src-site">console.adpopcorn.com/report/partner</span><div class="src-file">→ data/ads-coupang.json</div></div>
+        <div class="src-btns"><button class="btn-mini" data-copy="collect-ads-coupang.js">복사</button><a class="btn-mini ghost" href="collect-ads-coupang.js" download>파일</a></div>
+      </div>
     </div>
     <div class="modal-actions" style="margin-top:14px">
       <button class="btn-ghost" id="rg-reload">페이지 새로고침</button>
@@ -476,13 +571,14 @@ function showRefreshGuide(){
 /* ---------- init ---------- */
 async function init(){
   try{
-    const [sr,sdkr,sspr] = await Promise.all([
+    const [sr,sdkr,sspr,cpr] = await Promise.all([
       fetch('data/snapshot.json?t='+Date.now()),
       fetch('data/ads-sdk.json?t='+Date.now()),
-      fetch('data/ads-ssp.json?t='+Date.now())
+      fetch('data/ads-ssp.json?t='+Date.now()),
+      fetch('data/ads-coupang.json?t='+Date.now()).catch(()=>null)
     ]);
     DATA = await sr.json();
-    ADS = { meta:{}, sdk: await sdkr.json(), ssp: await sspr.json() };
+    ADS = { meta:{}, sdk: await sdkr.json(), ssp: await sspr.json(), coupang: (cpr && cpr.ok) ? await cpr.json() : null };
     renderMeta(); renderAds(); renderGems(); renderSpons(); renderPurch();
     buildAds(); built.ads=true;
     $('#loading').style.display='none';

@@ -190,6 +190,31 @@ body{
 .pgbtn:hover:not(:disabled){border-color:var(--mint);color:var(--mint);background:var(--mint-glow)}
 .pgbtn:disabled{opacity:.3;cursor:default}
 
+/* AI 어드바이저 */
+.advisor{background:linear-gradient(135deg,rgba(61,220,151,.05),rgba(167,139,250,.035));border-color:var(--border-strong)}
+.adv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.adv-block.adv-insight,.adv-block.adv-impact{grid-column:1/-1}
+.adv-h{font-size:12.5px;font-weight:700;margin-bottom:8px;letter-spacing:-.01em}
+.adv-block ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.adv-block li{font-size:12.5px;line-height:1.6;color:var(--text-mid);padding-left:13px;position:relative}
+.adv-block li:before{content:'';position:absolute;left:2px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--text-dim)}
+.adv-block li b{color:var(--text);font-weight:700}
+.adv-insight .adv-h{color:var(--mint)}
+.adv-good .adv-h{color:var(--mint)}
+.adv-bad .adv-h{color:var(--amber)}
+.adv-todo .adv-h{color:var(--blue)}
+.adv-impact .adv-h{color:var(--violet)}
+.adv-impact{background:rgba(167,139,250,.05);border-radius:12px;padding:14px 16px;margin-top:2px}
+.adv-trend{font-size:11px;font-weight:700;margin-left:3px}
+.adv-trend.up{color:var(--mint)}
+.adv-trend.down{color:var(--red)}
+
+/* 툴팁 (헤더 용어 설명) */
+.tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:rgba(255,255,255,.08);color:var(--text-dim);font-size:9px;font-weight:700;margin-left:6px;cursor:help;position:relative;vertical-align:middle;font-style:normal}
+.tip:hover,.tip:focus{background:var(--mint);color:#04130c;outline:none}
+.tip:hover:after,.tip:focus:after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 9px);background:#0c1a14;border:1px solid var(--border-strong);color:var(--text-mid);font-size:12px;font-weight:500;line-height:1.55;padding:11px 13px;border-radius:10px;width:max-content;max-width:300px;z-index:60;box-shadow:var(--shadow);white-space:normal;text-align:left;letter-spacing:-.01em}
+.tip:hover:before,.tip:focus:before{content:'';position:absolute;left:5px;top:calc(100% + 3px);border:5px solid transparent;border-bottom-color:var(--border-strong);z-index:60}
+
 /* modal (refresh guide) */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;animation:fade .2s;padding:20px}
 .modal{background:#0c1a14;border:1px solid var(--border-strong);border-radius:18px;padding:26px 28px;max-width:500px;width:100%;box-shadow:var(--shadow)}
