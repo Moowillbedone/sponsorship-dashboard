@@ -42,7 +42,7 @@ Chart.defaults.plugins.tooltip.titleFont = {weight:'700',size:12};
 Chart.defaults.plugins.tooltip.boxPadding = 5;
 Chart.defaults.maintainAspectRatio = false;
 
-let DATA=null, ADS=null; const built={};
+let DATA=null, ADS=null, SETTLE=null; const built={};
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -158,6 +158,11 @@ function advisor(key){
     items.push(['todo',`Top 그리퍼 리텐션 케어 + 신규 그리퍼 온보딩(첫 후원 매칭)으로 후원 저변 확대`]);
     items.push(['todo',`후원자 ${fmt(k.uniqueSponsors)}명 → 미후원 활성 유저 대상 <b>첫 후원 보너스 젬</b>으로 전환 유도`]);
     if(tAmt!=null) items.push(['impact',`최근 2주 후원액 ${tBadge(tAmt)} — ${tAmt>=0?'후원 생태계 성장 중':'하락 추세, 라이브 연계 후원 이벤트로 부양 권장'}`]);
+    if(SETTLE){ const stk=SETTLE.kpi;
+      items.push(['insight',`그리퍼가 후원받은 젬을 현금 환전할 때 <b>10% 수수료</b> → 누적 정산 순수익 <b>${fmt(stk.totalFee)}원</b>. 후원이 곧 회사 정산 매출로 직결되는 핵심 수익 구조`]);
+      items.push(['impact',`정산 순수익 중 환전 완료 <b>${fmt(stk.completedFee)}원</b>(실현)·대기 <b>${fmt(stk.pendingFee)}원</b> — 후원 총량↑ = 정산 수익↑ 비례 구조`]);
+      items.push(['todo',`정산 그리퍼 ${fmt(stk.uniqueGrippers)}명(개인 ${fmt(stk.indivCount)}·사업자 ${fmt(stk.bizCount)}건) → 1만 젬 환전 문턱 도달 그리퍼를 늘리는 것이 정산 수익 레버`]);
+    }
   } else if(key==='purch'){
     const p=DATA.purch,k=p.kpi; const arppu=k.uniqueBuyers?k.totalPrice/k.uniqueBuyers:0;
     const goog=p.byStore.find(x=>x.store==='GOOGLE_PLAY'),googR=goog&&k.totalPrice?goog.price/k.totalPrice*100:0;
@@ -296,6 +301,7 @@ function renderSpons(){
       ${kpi('활동 그리퍼', fmt(k.uniqueGrippers), '명', `후원받은 크리에이터 수`, C.violet)}
       ${kpi('후원 유저', fmt(k.uniqueSponsors), '명', `취소율 <span class="${k.cancelRate>0.01?'neg':'pos'}">${(k.cancelRate*100).toFixed(2)}%</span>`, C.blue)}
     </div>
+    ${SETTLE?settleHero():''}
     ${advisor('spons')}
     ${sectionHead('일별 후원 추이','그리퍼들이 받는 후원의 흐름','그리퍼 = 라이브 방송 크리에이터. 유저가 보유 젬으로 그리퍼를 후원한 내역(sponsorships/list)을 후원일시 기준 집계. 후원 젬=확정 후원액(confirmedGemAmount), 취소=후원 취소/부분취소 건. 유저 젬의 "사용"과 정확히 일치(검증됨).')}
     <div class="card">
@@ -325,7 +331,8 @@ function renderSpons(){
       </div>
     </div>
     ${sectionHead('기간별 후원 추이','일 / 주 / 월 단위')}
-    ${periodHTML('spons','후원젬 · 후원건수 · 취소건')}`;
+    ${periodHTML('spons','후원젬 · 후원건수 · 취소건')}
+    ${SETTLE?renderSettlement():''}`;
   $('#view-spons').innerHTML = html;
 }
 function buildSpons(){
@@ -343,6 +350,62 @@ function buildSpons(){
   barChart('s-dist', s.amountDist.map(d=>d.bucket), s.amountDist.map(d=>d.count), C.mint, {maxTicks:8,unit:'건'});
   setupPeriod('spons', s.daily, [{f:'amount',label:'후원젬',fmt:fmt},{f:'count',label:'후원건수',fmt:fmt},{f:'canceled',label:'취소건',fmt:fmt}]);
   renderPeriodTable('spons'); bindPeriodEvents();
+  if(SETTLE) buildSettlement();
+}
+
+/* ---------- 그리퍼 젬 정산 (현금 환전 10% 순수익) ---------- */
+function settleHero(){
+  const k=SETTLE.kpi;
+  return `<div class="card hero-net" style="margin-top:14px;--hero:${C.violet}">
+    <div class="hero-net-top"><span class="hero-net-label">💎 그리퍼 정산 순수익 <span class="dim" style="font-weight:500">(젬 환전 시 받는 10% 수수료)</span></span>${tip('그리퍼가 후원받은 젬을 현금으로 환전(출금)할 때 그립이 가져가는 10% 수수료(후원하기 이용료)의 누적 합계입니다. 그리퍼는 90%를 수령합니다. 2025-12~현재, 개인·사업자 그리퍼 전체, 환전 완료·대기·보류를 모두 포함한 발생 기준.')}</div>
+    <div class="hero-net-value">${won(k.totalFee)}</div>
+    <div class="hero-net-break"><span><b style="color:var(--mint)">환전 완료</b> ${won(k.completedFee)} <span class="dim">${fmt(k.completedCount)}건</span></span><span><b style="color:var(--amber)">환전 대기</b> ${won(k.pendingFee)} <span class="dim">${fmt(k.pendingCount)}건</span></span><span><b style="color:var(--text-mid)">정산 그리퍼</b> ${fmt(k.uniqueGrippers)}명</span></div>
+  </div>`;
+}
+function settleRank(rows, offset){
+  return `<div class="rank">`+rows.map((r,i)=>`
+    <div class="rank-row">
+      <div class="rank-no">${i+1+offset}</div>
+      <div class="rank-name">${esc(r.name)}<span class="seq">${r.biz?'사업자':'개인'}</span></div>
+      <div class="rank-val" style="color:${(i+offset)<3?C.mint:'var(--text)'}">${won(r.fee)}</div>
+      <div class="rank-cnt">${fmt(r.count)}건</div>
+    </div>`).join('')+`</div>`;
+}
+function renderSettlement(){
+  const st=SETTLE, k=st.kpi;
+  const monthRows=st.byMonth.slice().reverse();
+  const mhead=`<div class="ptable-row ptable-head"><div>월</div><div>정산 순수익(10%)</div><div>정산 대상 젬</div><div>건수</div></div>`;
+  const mbody=monthRows.map(r=>`<div class="ptable-row"><div class="ptable-date">${r.month}</div><div>${won(r.fee)}</div><div>${fmt(r.gem)}</div><div>${fmt(r.count)}건</div></div>`).join('');
+  return `
+    ${sectionHead('💎 그리퍼 젬 정산 (현금 환전 10% 순수익)','그리퍼가 후원받은 젬을 현금화할 때 발생하는 회사 수익','그리퍼는 후원받은 젬이 10,000개 이상 쌓이면 현금으로 환전(출금)할 수 있고, 이때 그립이 10%를 수수료(후원하기 이용료)로 가져갑니다(그리퍼는 90% 수령). 개인·사업자 그리퍼 모두 포함, 2025-12~현재. admin2 후원 정산(젬) 환전 신청 내역 기준.')}
+    <div class="kpi-grid">
+      ${kpi('정산 순수익 (10%)', fmt(k.totalFee), '원', `우리 수익 · ${fmt(k.count)}건 환전 신청`, C.mint)}
+      ${kpi('정산 대상 젬', fmt(k.totalGem), '젬', `환전 신청된 후원 젬 총량`, C.violet)}
+      ${kpi('그리퍼 수령액 (90%)', fmt(k.totalExchange), '원', `그리퍼에게 지급되는 금액`, C.blue)}
+      ${kpi('정산 그리퍼', fmt(k.uniqueGrippers), '명', `개인 ${fmt(k.indivCount)}·사업자 ${fmt(k.bizCount)}건`, C.amber)}
+    </div>
+    <div class="grid c2" style="margin-top:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">월별 정산 순수익 추이</div><div class="card-meta">${monthRows.length}개월 · 단위 원</div></div>
+        <div class="chart-wrap tall"><canvas id="st-month"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">환전 상태별 순수익</div><div class="card-meta">10% 수수료 기준</div></div>
+        <div class="chart-wrap"><canvas id="st-state"></canvas></div>
+        ${legend(st.byState.map(s=>({label:`${s.state} ${won(s.fee)}`,color:s.state==='완료'?C.mint:s.state==='대기중'?C.amber:C.red})))}
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><div class="card-title">🏆 Top 정산 그리퍼</div><div class="card-meta">우리에게 가장 많은 정산 수익을 안겨준 그리퍼 (10% 누적)</div></div>
+      <div class="grid c2"><div>${settleRank(st.topGrippers.slice(0,10),0)}</div><div>${settleRank(st.topGrippers.slice(10,20),10)}</div></div>
+    </div>
+    ${sectionHead('월별 정산 내역','환전 신청월 기준 · 순수익·정산 젬·건수')}
+    <div class="card"><div class="ptable" style="grid-template-columns:minmax(84px,1.1fr) repeat(3,1fr)">${mhead}${mbody}</div></div>`;
+}
+function buildSettlement(){
+  const st=SETTLE;
+  barChart('st-month', st.byMonth.map(m=>m.month.slice(2)), st.byMonth.map(m=>m.fee), C.violet, {unit:'won',maxTicks:12});
+  doughnutChart('st-state', st.byState.map(s=>s.state), st.byState.map(s=>s.fee), st.byState.map(s=>s.state==='완료'?C.mint:s.state==='대기중'?C.amber:C.red));
 }
 
 /* ===================== PURCH ===================== */
@@ -551,7 +614,7 @@ function showRefreshGuide(){
     </div>
     <p class="modal-desc"><b>2️⃣ 갱신할 때마다</b> — 아래 사이트에 <b>로그인</b>한 뒤, 즐겨찾기의 <b>'🔄 데이터 동기화'</b>를 클릭하면 끝. 알아서 수집→전송→1~2분 후 대시보드 반영.</p>
     <div class="src-list">
-      <div class="src-item"><div class="src-info"><b>젬</b> <span style="color:var(--text-dim);font-size:12px">적립·후원·결제</span> <span class="src-site">admin2.grip.show</span></div></div>
+      <div class="src-item"><div class="src-info"><b>젬 + 정산</b> <span style="color:var(--text-dim);font-size:12px">적립·후원·결제·환전 정산(10%)</span> <span class="src-site">admin2.grip.show</span></div></div>
       <div class="src-item"><div class="src-info"><b>광고 SDK</b> <span class="src-site">partners.adpopcorn.com</span></div></div>
       <div class="src-item"><div class="src-info"><b>광고 SSP</b> <span class="src-site">console.adpopcorn.com → 앱 리포트</span></div></div>
       <div class="src-item"><div class="src-info"><b>광고 쿠팡</b> <span class="src-site">console.adpopcorn.com → 파트너 리포트</span></div></div>
@@ -576,14 +639,16 @@ function showRefreshGuide(){
 /* ---------- init ---------- */
 async function init(){
   try{
-    const [sr,sdkr,sspr,cpr] = await Promise.all([
+    const [sr,sdkr,sspr,cpr,setr] = await Promise.all([
       fetch('data/snapshot.json?t='+Date.now()),
       fetch('data/ads-sdk.json?t='+Date.now()),
       fetch('data/ads-ssp.json?t='+Date.now()),
-      fetch('data/ads-coupang.json?t='+Date.now()).catch(()=>null)
+      fetch('data/ads-coupang.json?t='+Date.now()).catch(()=>null),
+      fetch('data/spons-settlement.json?t='+Date.now()).catch(()=>null)
     ]);
     DATA = await sr.json();
     ADS = { meta:{}, sdk: await sdkr.json(), ssp: await sspr.json(), coupang: (cpr && cpr.ok) ? await cpr.json() : null };
+    SETTLE = (setr && setr.ok) ? await setr.json() : null;
     renderMeta(); renderAds(); renderGems(); renderSpons(); renderPurch();
     buildAds(); built.ads=true;
     $('#loading').style.display='none';

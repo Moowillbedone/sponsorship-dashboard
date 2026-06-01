@@ -28,23 +28,41 @@
   var ymd = function (d) { return '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); };
   function ranges(startStr, fmt) { var out = [], s = new Date(startStr + 'T00:00:00'), E = new Date(); while (s <= E) { var e = new Date(s); e.setDate(e.getDate() + 61); if (e > E) e.setTime(E.getTime()); out.push([fmt(s), fmt(e)]); s = new Date(e); s.setDate(s.getDate() + 1); } return out; }
 
-  var host = location.host, path = location.pathname, type = null, data = null;
+  var host = location.host, path = location.pathname;
   try {
-    if (host.indexOf('admin2.grip.show') >= 0) { type = 'gems'; data = await collectGems(); }
-    else if (host.indexOf('partners.adpopcorn.com') >= 0) { type = 'sdk'; data = await collectSDK(); }
+    if (host.indexOf('admin2.grip.show') >= 0) {
+      // admin2 한 번 실행으로 젬(적립·후원·결제) + 정산(환전 10% 순수익) 모두 수집·전송
+      var gd = await collectGems(); if (!gd) return;
+      if (!(await send('gems', gd))) return;
+      log('정산(환전 10% 순수익) 수집 중…');
+      var sd = await collectSettle();
+      if (sd) await send('settle', sd);
+      done('젬 + 정산', (gd.spons ? gd.spons.kpi.total.toLocaleString() + '건 후원' : '') + (sd ? ' · ' + sd.kpi.count + '건 정산' : ''));
+      return;
+    }
+    var type = null, data = null;
+    if (host.indexOf('partners.adpopcorn.com') >= 0) { type = 'sdk'; data = await collectSDK(); }
     else if (host.indexOf('console.adpopcorn.com') >= 0) {
       if (path.indexOf('/report/partner') >= 0) { type = 'coupang'; data = await collectCoupang(); }
       else { type = 'ssp'; data = await collectSSP(); }
     } else { err('지원하지 않는 사이트입니다.<br>admin2.grip.show / partners.adpopcorn.com / console.adpopcorn.com 에서 실행하세요.'); return; }
 
     if (!data) return; // collect 단계에서 이미 에러 표시
-    log('서버로 전송 중…');
-    var r = await fetch(SYNC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': SYNC_KEY }, body: JSON.stringify({ type: type, data: data }) });
-    var j = await r.json();
-    if (j.ok) done(typeLabel(type), j.days || (data.daily ? data.daily.length : '')); else err('서버: ' + (j.error || r.status));
+    var j = await send(type, data);
+    if (j) done(typeLabel(type), j.days || (data.daily ? data.daily.length : ''));
   } catch (e) { err(e.message); }
 
-  function typeLabel(t) { return { gems: '젬', sdk: '광고 SDK', ssp: '광고 SSP', coupang: '쿠팡' }[t] || t; }
+  function typeLabel(t) { return { gems: '젬', sdk: '광고 SDK', ssp: '광고 SSP', coupang: '쿠팡', settle: '정산' }[t] || t; }
+  async function send(type, data) {
+    if (!data) return null;
+    log(typeLabel(type) + ' 서버로 전송 중…');
+    try {
+      var r = await fetch(SYNC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': SYNC_KEY }, body: JSON.stringify({ type: type, data: data }) });
+      var j = await r.json();
+      if (!j.ok) { err('서버: ' + (j.error || r.status)); return null; }
+      return j;
+    } catch (e) { err(e.message); return null; }
+  }
 
   /* ---------- 젬 전체 snapshot (admin2.grip.show) : 적립·후원·결제 ---------- */
   async function collectGems() {
@@ -75,6 +93,28 @@
     for (var i3 = 0; i3 < P.length; i3++) { var r3 = P[i3], d3 = dStr(new Date(r3.orderedAt || r3.purchasedAt)); var ps = pStr[r3.storeType] = pStr[r3.storeType] || { count: 0, price: 0 }; ps.count++; ps.price += r3.price || 0; pSt[r3.state] = (pSt[r3.state] || 0) + 1; var bl = (r3.gemBundle && (r3.gemBundle.productName || r3.gemBundle.productId || r3.gemBundle.productSeq)) || '기타', pb = pBn[bl] = pBn[bl] || { count: 0, price: 0, gem: 0 }; pb.count++; pb.price += r3.price || 0; pb.gem += r3.gemAmount || 0; var dd3 = pD[d3] = pD[d3] || { count: 0, price: 0 }; dd3.count++; dd3.price += r3.price || 0; tP += r3.price || 0; tG += r3.gemAmount || 0; var bu = r3.user || {}, bb = buy[bu.userSeq] = buy[bu.userSeq] || { name: bu.userName, price: 0, count: 0 }; bb.price += r3.price || 0; bb.count++; }
     var purch = { kpi: { total: P.length, totalPrice: tP, totalGem: tG, avgPrice: P.length ? Math.round(tP / P.length) : 0, purchasedCount: pSt.PURCHASED || 0, uniqueBuyers: Object.keys(buy).length }, byStore: Object.entries(pStr).map(function (e) { return Object.assign({ store: e[0] }, e[1]); }), byState: Object.entries(pSt).map(function (e) { return { state: e[0], count: e[1] }; }), byBundle: Object.entries(pBn).map(function (e) { return Object.assign({ bundle: e[0] }, e[1]); }).sort(function (a, b) { return b.count - a.count; }), daily: Object.entries(pD).map(function (e) { return Object.assign({ date: e[0] }, e[1]); }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }), topBuyers: topN(buy, 50, 'price') };
     return { meta: { generatedAt: Date.now(), gemsCount: G.length, sponsCount: S.length, purchCount: P.length, dateRange: { from: gDaily[0] && gDaily[0].date, to: gDaily[gDaily.length - 1] && gDaily[gDaily.length - 1].date } }, gems: gems, spons: spons, purch: purch };
+  }
+
+  /* ---------- 그리퍼 젬 정산 (admin2.grip.show) : 환전 시 10% 수수료(후원하기 이용료) ---------- */
+  async function collectSettle() {
+    var ck = {}; document.cookie.split(';').forEach(function (c) { var i = c.indexOf('='); if (i > 0) ck[c.slice(0, i).trim()] = c.slice(i + 1).trim(); });
+    var tok = decodeURIComponent(ck['grip.admin.sessiona'] || ''); if (!tok) return null;
+    var H = { headers: { Authorization: 'Bearer ' + tok, Accept: 'application/json' } };
+    var toM = dStr(new Date()).slice(0, 7);
+    async function ft(bt, tid) { var url = 'https://admin-api.grip.show/settlement/sponsorship/result/exchange/list?draw=1&start=0&length=5000&tid=' + tid + '&search%5BfromMonth%5D=2025-12&search%5BtoMonth%5D=' + toM + '&search%5BuserSeq%5D=0&search%5BbusinessRegistrationNumber%5D=&search%5BbusinessType%5D=' + bt + '&search%5BsettlementType%5D=sponsorship&search%5BexchangeState%5D=1&search%5BexchangeState%5D=2&search%5BexchangeState%5D=3&search%5BexchangeState%5D=4'; for (var r = 0; r < 5; r++) { try { var res = await fetch(url, H); if (!res.ok) throw 0; var j = await res.json(); return j.data || []; } catch (e) { await sleep(800 * (r + 1)); } } return []; }
+    var indiv = await ft(1, 0), biz = await ft(2, 1);
+    var all = indiv.map(function (x) { x._b = false; return x; }).concat(biz.map(function (x) { x._b = true; return x; }));
+    var sm = { 1: '대기중', 2: '진행중', 3: '완료', 4: '보류' };
+    var tFee = 0, tGem = 0, tEx = 0, byState = {}, byMonth = {}, grip = {};
+    for (var i = 0; i < all.length; i++) { var x = all[i], fee = x.advertisementFee || 0, gem = x.gemAmount || 0, ex = x.exchangeAmount || 0, st = sm[x.state] || String(x.state); tFee += fee; tGem += gem; tEx += ex; (byState[st] = byState[st] || { count: 0, fee: 0 }); byState[st].count++; byState[st].fee += fee; var dt = new Date(x.createdAt), mk = dt.getFullYear() + '-' + pad(dt.getMonth() + 1); (byMonth[mk] = byMonth[mk] || { fee: 0, gem: 0, count: 0 }); byMonth[mk].fee += fee; byMonth[mk].gem += gem; byMonth[mk].count++; var g = grip[x.userSeq] = grip[x.userSeq] || { name: x.userName, biz: x._b, gem: 0, fee: 0, exchange: 0, count: 0 }; g.gem += gem; g.fee += fee; g.exchange += ex; g.count++; }
+    var comp = byState['완료'] || { count: 0, fee: 0 }, pend = byState['대기중'] || { count: 0, fee: 0 }, hold = byState['보류'] || { count: 0, fee: 0 };
+    return {
+      meta: { collectedAt: dStr(new Date()), from: '2025-12', to: toM },
+      kpi: { totalFee: tFee, totalGem: tGem, totalExchange: tEx, count: all.length, indivCount: indiv.length, bizCount: biz.length, uniqueGrippers: Object.keys(grip).length, completedFee: comp.fee, completedCount: comp.count, pendingFee: pend.fee, pendingCount: pend.count, holdFee: hold.fee, holdCount: hold.count },
+      byState: Object.keys(byState).map(function (s) { return { state: s, count: byState[s].count, fee: byState[s].fee }; }).sort(function (a, b) { return b.fee - a.fee; }),
+      byMonth: Object.keys(byMonth).sort().map(function (m) { return { month: m, fee: byMonth[m].fee, gem: byMonth[m].gem, count: byMonth[m].count }; }),
+      topGrippers: Object.keys(grip).map(function (k) { return grip[k]; }).sort(function (a, b) { return b.fee - a.fee; }).slice(0, 20)
+    };
   }
 
   /* ---------- 광고 SDK (partners.adpopcorn.com) ---------- */
