@@ -241,6 +241,9 @@ body{
 .btn-mini:hover{background:#54e6a8}
 .btn-mini.ghost{background:rgba(255,255,255,.05);color:var(--text-mid);border:1px solid var(--border)}
 .btn-mini.ghost:hover{border-color:var(--mint);color:var(--mint);background:var(--mint-glow)}
+.bookmarklet{display:inline-block;background:var(--mint);color:#04130c;font-weight:700;font-size:14.5px;padding:12px 24px;border-radius:11px;text-decoration:none;cursor:grab;box-shadow:0 4px 18px var(--mint-glow);user-select:none}
+.bookmarklet:hover{background:#54e6a8}
+.bookmarklet:active{cursor:grabbing}
 
 /* toast */
 .toast{

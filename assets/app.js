@@ -534,27 +534,22 @@ function showRefreshGuide(){
   const m=document.createElement('div'); m.id='rg-modal'; m.className='modal-backdrop';
   m.innerHTML=`<div class="modal" style="max-width:580px">
     <div class="modal-head"><b>데이터 갱신하기</b><button class="modal-x" id="rg-x">✕</button></div>
-    <p class="modal-desc">각 데이터는 <b>해당 사이트에 로그인한 브라우저</b>의 F12 콘솔에 스크립트를 붙여넣어 수집합니다 <span class="modal-dim">(붙여넣기가 막히면 <code>allow pasting</code> 입력)</span>. 다운로드된 JSON을 레포 <code>data/</code> 에 교체하고 <code>git push</code> 하면 1~2분 후 자동 반영됩니다.</p>
-    <div class="src-list">
-      <div class="src-item">
-        <div class="src-info"><b>① 젬 데이터</b> <span class="src-site">admin2.grip.show</span><div class="src-file">→ data/snapshot.json</div></div>
-        <div class="src-btns"><button class="btn-mini" data-copy="collect.js">복사</button><a class="btn-mini ghost" href="collect.js" download>파일</a></div>
-      </div>
-      <div class="src-item">
-        <div class="src-info"><b>② 광고 SDK</b> <span class="src-site">partners.adpopcorn.com</span><div class="src-file">→ data/ads-sdk.json</div></div>
-        <div class="src-btns"><button class="btn-mini" data-copy="collect-ads-sdk.js">복사</button><a class="btn-mini ghost" href="collect-ads-sdk.js" download>파일</a></div>
-      </div>
-      <div class="src-item">
-        <div class="src-info"><b>③ 광고 SSP</b> <span class="src-site">console.adpopcorn.com</span><div class="src-file">→ data/ads-ssp.json</div></div>
-        <div class="src-btns"><button class="btn-mini" data-copy="collect-ads-ssp.js">복사</button><a class="btn-mini ghost" href="collect-ads-ssp.js" download>파일</a></div>
-      </div>
-      <div class="src-item">
-        <div class="src-info"><b>④ 광고 쿠팡</b> <span class="src-site">console.adpopcorn.com/report/partner</span><div class="src-file">→ data/ads-coupang.json</div></div>
-        <div class="src-btns"><button class="btn-mini" data-copy="collect-ads-coupang.js">복사</button><a class="btn-mini ghost" href="collect-ads-coupang.js" download>파일</a></div>
-      </div>
+    <p class="modal-desc"><b>1️⃣ 최초 1회만</b> — 아래 초록 버튼을 브라우저 <b>즐겨찾기 바로 끌어다 놓으세요</b>(드래그). 설치는 한 번이면 끝.</p>
+    <div style="text-align:center;margin:6px 0 16px">
+      <a class="bookmarklet" href="javascript:(function(){var s=document.createElement('script');s.src='https://sponsorship-dashboard-tau.vercel.app/sync-all.js?t='+Date.now();document.body.appendChild(s);})();" onclick="return false;">🔄 데이터 동기화</a>
+      <div class="modal-dim" style="margin-top:7px">↑ 이 버튼을 즐겨찾기 바(주소창 아래 줄)로 <b>드래그</b> (클릭 아님)</div>
     </div>
+    <p class="modal-desc"><b>2️⃣ 갱신할 때마다</b> — 아래 사이트에 <b>로그인</b>한 뒤, 즐겨찾기의 <b>'🔄 데이터 동기화'</b>를 클릭하면 끝. 알아서 수집→전송→1~2분 후 대시보드 반영.</p>
+    <div class="src-list">
+      <div class="src-item"><div class="src-info"><b>젬</b> <span style="color:var(--text-dim);font-size:12px">적립·후원·결제</span> <span class="src-site">admin2.grip.show</span></div></div>
+      <div class="src-item"><div class="src-info"><b>광고 SDK</b> <span class="src-site">partners.adpopcorn.com</span></div></div>
+      <div class="src-item"><div class="src-info"><b>광고 SSP</b> <span class="src-site">console.adpopcorn.com → 앱 리포트</span></div></div>
+      <div class="src-item"><div class="src-info"><b>광고 쿠팡</b> <span class="src-site">console.adpopcorn.com → 파트너 리포트</span></div></div>
+    </div>
+    <p class="modal-dim" style="margin-top:10px">버튼이 막히면(사이트 보안정책 CSP) 아래 <b>스크립트 복사</b> → 사이트에서 F12 → 콘솔에 붙여넣기 하세요.</p>
     <div class="modal-actions" style="margin-top:14px">
-      <button class="btn-ghost" id="rg-reload">페이지 새로고침</button>
+      <button class="btn-mini" data-copy="sync-all.js">📋 스크립트 복사 (콘솔용)</button>
+      <button class="btn-ghost" id="rg-reload">새로고침</button>
     </div>
   </div>`;
   document.body.appendChild(m);
