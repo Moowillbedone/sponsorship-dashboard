@@ -131,7 +131,7 @@ function trend(daily, field, win){
   const prev=daily.slice(-win*2,-win).reduce((a,b)=>a+(+b[field]||0),0);
   if(!prev) return null; return (recent-prev)/prev*100;
 }
-function tBadge(p){ if(p==null) return ''; const up=p>=0; return `<span class="adv-trend ${up?'up':'down'}">${up?'▲':'▼'}${Math.abs(p).toFixed(0)}%</span>`; }
+function tBadge(p){ if(p==null) return ''; const up=p>=0; return ` <span class="adv-trend ${up?'up':'down'}">(최근 2주 ${up?'▲':'▼'}${Math.abs(p).toFixed(0)}%)</span>`; }
 function advisor(key){
   const items=[]; const P=n=>n.toFixed(1)+'%';
   if(key==='gems'){
@@ -180,7 +180,7 @@ function advisor(key){
   const icon={insight:'💡',good:'✅',bad:'⚠️',todo:'🎯',impact:'🚀'}, lab={insight:'핵심 인사이트',good:'강점',bad:'주의·약점',todo:'개선 액션',impact:'비즈니스 임팩트'};
   const grp={}; items.forEach(([t,x])=>{(grp[t]=grp[t]||[]).push(x);});
   const ord=['insight','good','bad','todo','impact'];
-  return `<div class="card advisor"><div class="card-head"><div class="card-title">🤖 AI 어드바이저</div><div class="card-meta">데이터 기반 자동 분석 · 갱신 시 자동 변경</div></div>
+  return `<div class="card advisor"><div class="card-head"><div class="card-title">🤖 AI 어드바이저</div><div class="card-meta"><b style="color:var(--text-mid)">(최근 2주 ▲▼%)</b> = 직전 2주 합계 대비 증감 · 데이터 갱신 시 자동 변경</div></div>
     <div class="adv-grid">${ord.filter(t=>grp[t]).map(t=>`<div class="adv-block adv-${t}"><div class="adv-h">${icon[t]} ${lab[t]}</div><ul>${grp[t].map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div>`;
 }
 
@@ -224,9 +224,9 @@ function renderGems(){
   const html = `
     <div class="kpi-grid">
       ${kpi('총 젬 거래', fmt(k.total), '건', `일평균 ${fmt(k.total/g.daily.length)}건`, C.mint)}
-      ${kpi('총 적립', fmtKor(k.accrualAmt), '젬', `광고미션·결제·후원 등`, C.mint)}
-      ${kpi('총 사용', fmtKor(k.useAmt), '젬', `적립 대비 <span class="pos">${usePerAcc.toFixed(0)}%</span> 소비`, C.blue)}
-      ${kpi('순 유통 젬', fmtKor(k.netCirc), '젬', `만료 ${fmtKor(k.expireAmt)} · 회수 ${fmtKor(k.retAmt)}`, C.amber)}
+      ${kpi('총 적립', fmt(k.accrualAmt), '젬', `광고미션·결제·후원 등`, C.mint)}
+      ${kpi('총 사용', fmt(k.useAmt), '젬', `적립 대비 <span class="pos">${usePerAcc.toFixed(0)}%</span> 소비`, C.blue)}
+      ${kpi('순 유통 젬', fmt(k.netCirc), '젬', `만료 ${fmt(k.expireAmt)} · 회수 ${fmt(k.retAmt)}`, C.amber)}
     </div>
     ${advisor('gems')}
     ${sectionHead('일별 적립 vs 사용 추이','젬이 어떻게 쌓이고 소비되는지','젬 = 유저가 광고미션·인앱결제·후원받기로 획득해 후원에 쓰는 앱 내 재화. 적립=획득, 사용=소비(후원 등), 만료=유효기간(약 90일) 경과 소멸. admin2 젬 거래내역(gemHistoryType)을 발생일시 기준으로 일별 집계.')}
@@ -290,7 +290,7 @@ function renderSpons(){
   const html = `
     <div class="kpi-grid">
       ${kpi('총 후원', fmt(k.total), '건', `완료 ${fmt(k.sponsoredCount)} · 일평균 ${fmt(k.total/s.daily.length)}건`, C.mint)}
-      ${kpi('총 후원 젬', fmtKor(k.confirmedAmt), '젬', `취소 ${fmtKor(k.canceledAmt)} 젬`, C.mint)}
+      ${kpi('총 후원 젬', fmt(k.confirmedAmt), '젬', `취소 ${fmt(k.canceledAmt)} 젬`, C.mint)}
       ${kpi('활동 그리퍼', fmt(k.uniqueGrippers), '명', `후원받은 크리에이터 수`, C.violet)}
       ${kpi('후원 유저', fmt(k.uniqueSponsors), '명', `취소율 <span class="${k.cancelRate>0.01?'neg':'pos'}">${(k.cancelRate*100).toFixed(2)}%</span>`, C.blue)}
     </div>
@@ -349,8 +349,8 @@ function renderPurch(){
   const html = `
     <div class="kpi-grid">
       ${kpi('총 결제', fmt(k.total), '건', `완료 ${fmt(k.purchasedCount)}건`, C.mint)}
-      ${kpi('총 매출', fmtKor(k.totalPrice), '원', `일평균 ${fmtKor(k.totalPrice/p.daily.length)}원`, C.mint)}
-      ${kpi('판매 젬', fmtKor(k.totalGem), '젬', `유료 충전된 젬`, C.amber)}
+      ${kpi('총 매출', fmt(k.totalPrice), '원', `일평균 ${fmt(k.totalPrice/p.daily.length)}원`, C.mint)}
+      ${kpi('판매 젬', fmt(k.totalGem), '젬', `유료 충전된 젬`, C.amber)}
       ${kpi('구매 유저', fmt(k.uniqueBuyers), '명', `평균 결제 <b style="color:var(--text)">${fmt(k.avgPrice)}원</b>`, C.blue)}
     </div>
     ${advisor('purch')}
@@ -401,9 +401,9 @@ function renderAds(){
   const eCPM = sp.totalImpression ? (sp.totalCost/sp.totalImpression*1000) : 0;
   const html = `
     <div class="kpi-grid">
-      ${kpi('SDK 오퍼월 매출', fmtKor(sk.totalRevenue), '원', `참여완료 ${fmt(sk.totalComplete)}건`, C.mint)}
-      ${kpi('SSP 미디에이션', '$'+fmt2(sp.totalCost), '', `≈ ${fmtKor(Math.round(sp.totalCost*1400))}원`, C.violet)}
-      ${kpi('SSP 노출수', fmtKor(sp.totalImpression), '회', `클릭 ${fmt(sp.totalClick)} · eCPM $${eCPM.toFixed(3)}`, C.blue)}
+      ${kpi('SDK 오퍼월 매출', fmt(sk.totalRevenue), '원', `참여완료 ${fmt(sk.totalComplete)}건`, C.mint)}
+      ${kpi('SSP 미디에이션', '$'+fmt2(sp.totalCost), '', `≈ ${fmt(Math.round(sp.totalCost*1400))}원`, C.violet)}
+      ${kpi('SSP 노출수', fmt(sp.totalImpression), '회', `클릭 ${fmt(sp.totalClick)} · eCPM $${eCPM.toFixed(3)}`, C.blue)}
       ${kpi('SDK 오퍼월 방문', fmt(sk.totalVisit), '', `참여시도 ${fmt(sk.totalParticipation)}`, C.amber)}
     </div>
     ${advisor('ads')}
@@ -462,9 +462,9 @@ function renderAds(){
     ${sectionHead('애드팝콘 파트너스 · 쿠팡 광고','유저가 쿠팡 광고로 구매 시 수수료 수익 · 2026-04말 시작 · 단위 원','쿠팡 파트너스(CPS) = 유저가 앱 내 쿠팡 광고를 통해 실제 상품을 구매하면 발생하는 제휴 수수료. 순매체비=우리 최종 수익(client_commission, 거래액의 약 4%). 거래액(GMV)=구매금액-취소금액. 구매전환율=구매수/클릭수. console.adpopcorn 파트너 리포트 기준, 2026년 4월말 도입.')}
     <div class="kpi-grid">
       ${kpi('쿠팡 순매체비', won(cp.kpi.totalClientCommission), '', '우리 최종 수익', C.amber)}
-      ${kpi('거래액(GMV)', fmtKor(cp.kpi.totalRevenue), '원', `구매 ${fmt(cp.kpi.totalConversion)}건`, C.mint)}
+      ${kpi('거래액(GMV)', fmt(cp.kpi.totalRevenue), '원', `구매 ${fmt(cp.kpi.totalConversion)}건`, C.mint)}
       ${kpi('클릭 수', fmt(cp.kpi.totalClick), '회', `구매전환 ${(cp.kpi.totalConversion/cp.kpi.totalClick*100).toFixed(1)}%`, C.blue)}
-      ${kpi('객단가', fmtKor(cp.kpi.totalConversion?cp.kpi.totalConvRevenue/cp.kpi.totalConversion:0), '원', '구매 1건당 금액', C.violet)}
+      ${kpi('객단가', fmt(cp.kpi.totalConversion?cp.kpi.totalConvRevenue/cp.kpi.totalConversion:0), '원', '구매 1건당 금액', C.violet)}
     </div>
     <div class="card">
       <div class="card-head"><div class="card-title">일별 쿠팡 순매체비 / 클릭</div><div class="card-meta">${cp.daily.length}일 · 원</div></div>
