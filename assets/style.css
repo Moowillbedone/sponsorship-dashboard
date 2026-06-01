@@ -245,6 +245,14 @@ body{
 .bookmarklet:hover{background:#54e6a8}
 .bookmarklet:active{cursor:grabbing}
 
+/* 광고 총 순수익 히어로 카드 */
+.hero-net{margin-bottom:14px;background:linear-gradient(135deg,rgba(61,220,151,.1),rgba(61,220,151,.02));border-color:var(--mint-soft)}
+.hero-net .dim{color:var(--text-dim)}
+.hero-net-label{font-size:13.5px;color:var(--text-mid);font-weight:600}
+.hero-net-value{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:10px 0 14px;color:var(--mint);font-variant-numeric:tabular-nums}
+.hero-net-break{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--text-mid);font-variant-numeric:tabular-nums}
+@media (max-width:560px){.hero-net-value{font-size:34px}.hero-net-break{gap:12px;font-size:12px}}
+
 /* toast */
 .toast{
   position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);

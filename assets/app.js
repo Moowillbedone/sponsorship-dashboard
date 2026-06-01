@@ -401,9 +401,17 @@ function buildPurch(){
 function renderAds(){
   const sdk=ADS.sdk, ssp=ADS.ssp, cp=ADS.coupang, sk=sdk.kpi, sp=ssp.kpi;
   const eCPM = sp.totalImpression ? (sp.totalCost/sp.totalImpression*1000) : 0;
+  const sspKrw = Math.round(sp.totalCost*1400);
+  const cpRev = cp ? cp.kpi.totalClientCommission : 0;
+  const totalNet = sk.totalRevenue + sspKrw + cpRev;
   const html = `
+    <div class="card hero-net">
+      <div class="hero-net-top"><span class="hero-net-label">💰 광고 총 순수익 <span class="dim" style="font-weight:500">(매출 아님 · 회사 실수령)</span></span>${tip('광고 3개 채널(SDK 오퍼월·SSP 미디에이션·쿠팡 파트너스)에서 실제로 받는 순수익 합계입니다. 거래액·매출이 아니라 정산 기준 회사 실수령액이며, SSP는 USD를 환율 1,400으로 환산해 합산했습니다.')}</div>
+      <div class="hero-net-value">${won(totalNet)}</div>
+      <div class="hero-net-break"><span><b style="color:var(--mint)">SDK 오퍼월</b> ${won(sk.totalRevenue)}</span><span><b style="color:var(--violet)">SSP 미디에이션</b> ${won(sspKrw)} <span class="dim">($${fmt2(sp.totalCost)})</span></span>${cp?`<span><b style="color:var(--amber)">쿠팡 파트너스</b> ${won(cpRev)}</span>`:''}</div>
+    </div>
     <div class="kpi-grid">
-      ${kpi('SDK 오퍼월 매출', fmt(sk.totalRevenue), '원', `참여완료 ${fmt(sk.totalComplete)}건`, C.mint)}
+      ${kpi('SDK 오퍼월 순수익', fmt(sk.totalRevenue), '원', `참여완료 ${fmt(sk.totalComplete)}건`, C.mint)}
       ${kpi('SSP 미디에이션', '$'+fmt2(sp.totalCost), '', `≈ ${fmt(Math.round(sp.totalCost*1400))}원`, C.violet)}
       ${kpi('SSP 노출수', fmt(sp.totalImpression), '회', `클릭 ${fmt(sp.totalClick)} · eCPM $${eCPM.toFixed(3)}`, C.blue)}
       ${kpi('SDK 오퍼월 방문', fmt(sk.totalVisit), '', `참여시도 ${fmt(sk.totalParticipation)}`, C.amber)}
