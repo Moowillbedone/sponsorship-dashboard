@@ -149,7 +149,7 @@ function advisor(key){
   } else if(key==='spons'){
     const s=DATA.spons,k=s.kpi; const cancel=k.cancelRate*100;
     const perG=k.uniqueGrippers?k.confirmedAmt/k.uniqueGrippers:0, perS=k.uniqueSponsors?k.confirmedAmt/k.uniqueSponsors:0;
-    const top10=s.topGrippers.slice(0,10).reduce((a,b)=>a+b.amount,0), top10R=k.confirmedAmt?top10/k.confirmedAmt*100:0;
+    const top10=s.topGrippers.slice(0,20).reduce((a,b)=>a+b.amount,0), top10R=k.confirmedAmt?top10/k.confirmedAmt*100:0;
     const tAmt=trend(s.daily,'amount');
     items.push(['insight',`후원 취소율 <b>${P(cancel)}</b> — ${cancel<1?'매우 안정적, 후원 경험 신뢰도가 높음':'다소 높아 점검 필요'} ${tBadge(tAmt)}`]);
     items.push(['insight',`그리퍼 1인 평균 <b>${fmtKor(perG)}젬</b> 수령 · 후원자 1인 평균 <b>${fmtKor(perS)}젬</b> 후원`]);
@@ -261,11 +261,11 @@ function renderGems(){
     <div class="grid c2" style="margin-top:14px">
       <div class="card">
         <div class="card-head"><div class="card-title">🏆 Top 적립 유저</div><div class="card-meta">광고미션 등으로 가장 많이 모은</div></div>
-        ${rankList(g.topAccrual.slice(0,10), r=>fmtKor(r.amount)+' 젬', C.mint)}
+        ${rankList(g.topAccrual.slice(0,20), r=>fmtKor(r.amount)+' 젬', C.mint)}
       </div>
       <div class="card">
         <div class="card-head"><div class="card-title">🔥 Top 사용 유저</div><div class="card-meta">후원 등에 가장 많이 쓴</div></div>
-        ${rankList(g.topUse.slice(0,10), r=>fmtKor(r.amount)+' 젬', C.blue)}
+        ${rankList(g.topUse.slice(0,20), r=>fmtKor(r.amount)+' 젬', C.blue)}
       </div>
     </div>
     ${sectionHead('기간별 젬 추이','일 / 주 / 월 단위 · 단위 젬')}
@@ -317,11 +317,11 @@ function renderSpons(){
     <div class="grid c2" style="margin-top:14px">
       <div class="card">
         <div class="card-head"><div class="card-title">🏆 Top 그리퍼</div><div class="card-meta">가장 많은 후원을 받은 크리에이터</div></div>
-        ${rankList(s.topGrippers.slice(0,12), r=>fmtKor(r.amount)+' 젬', C.mint)}
+        ${rankList(s.topGrippers.slice(0,20), r=>fmtKor(r.amount)+' 젬', C.mint)}
       </div>
       <div class="card">
         <div class="card-head"><div class="card-title">💝 Top 후원 유저</div><div class="card-meta">가장 많이 후원한 팬</div></div>
-        ${rankList(s.topSponsors.slice(0,12), r=>fmtKor(r.amount)+' 젬', C.violet)}
+        ${rankList(s.topSponsors.slice(0,20), r=>fmtKor(r.amount)+' 젬', C.violet)}
       </div>
     </div>
     ${sectionHead('기간별 후원 추이','일 / 주 / 월 단위')}
@@ -375,7 +375,7 @@ function renderPurch(){
     </div>
     <div class="card" style="margin-top:14px">
       <div class="card-head"><div class="card-title">🏆 Top 결제 유저</div><div class="card-meta">가장 많이 충전한 큰손</div></div>
-      <div class="grid c2"><div>${rankList(p.topBuyers.slice(0,6), r=>fmtKor(r.price)+'원', C.mint)}</div><div>${rankList(p.topBuyers.slice(6,12).map((r)=>r), r=>fmtKor(r.price)+'원', C.mint).replace(/rank-no">(\d+)/g,(m,n)=>`rank-no">${+n+6}`)}</div></div>
+      <div class="grid c2"><div>${rankList(p.topBuyers.slice(0,10), r=>fmtKor(r.price)+'원', C.mint)}</div><div>${rankList(p.topBuyers.slice(10,20).map((r)=>r), r=>fmtKor(r.price)+'원', C.mint).replace(/rank-no">(\d+)/g,(m,n)=>`rank-no">${+n+10}`)}</div></div>
     </div>
     ${sectionHead('기간별 결제 추이','일 / 주 / 월 단위')}
     ${periodHTML('purch','매출(원) · 결제건수')}`;
