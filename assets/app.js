@@ -222,6 +222,15 @@ function renderMeta(){
   const d=new Date(m.generatedAt);
   const p=n=>String(n).padStart(2,'0');
   $('#updatedAt').textContent = `갱신 ${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  renderTotalRev();
+}
+function renderTotalRev(){
+  const el=$('#brandRev'); if(!el) return;
+  const adsNet = ADS ? ((ADS.sdk.kpi.totalRevenue||0) + Math.round((ADS.ssp.kpi.totalCost||0)*1400) + (ADS.coupang?ADS.coupang.kpi.totalClientCommission:0)) : 0;
+  const settleNet = SETTLE ? SETTLE.kpi.totalFee : 0;
+  const purchNet = (DATA.purch&&DATA.purch.kpi) ? Math.round(DATA.purch.kpi.totalPrice*0.1) : 0;
+  const total = adsNet + settleNet + purchNet;
+  el.innerHTML = `💰 총 순수익 <b>${won(total)}</b> <span class="bdim">· 광고 ${fmtKor(adsNet)}·정산 ${fmtKor(settleNet)}·결제 ${fmtKor(purchNet)}</span>`;
 }
 
 /* ===================== GEMS ===================== */
@@ -295,13 +304,13 @@ function buildGems(){
 function renderSpons(){
   const s=DATA.spons, k=s.kpi;
   const html = `
+    ${SETTLE?settleHero():''}
     <div class="kpi-grid">
       ${kpi('총 후원', fmt(k.total), '건', `완료 ${fmt(k.sponsoredCount)} · 일평균 ${fmt(k.total/s.daily.length)}건`, C.mint)}
       ${kpi('총 후원 젬', fmt(k.confirmedAmt), '젬', `취소 ${fmt(k.canceledAmt)} 젬`, C.mint)}
       ${kpi('활동 그리퍼', fmt(k.uniqueGrippers), '명', `후원받은 크리에이터 수`, C.violet)}
       ${kpi('후원 유저', fmt(k.uniqueSponsors), '명', `취소율 <span class="${k.cancelRate>0.01?'neg':'pos'}">${(k.cancelRate*100).toFixed(2)}%</span>`, C.blue)}
     </div>
-    ${SETTLE?settleHero():''}
     ${advisor('spons')}
     ${sectionHead('일별 후원 추이','그리퍼들이 받는 후원의 흐름','그리퍼 = 라이브 방송 크리에이터. 유저가 보유 젬으로 그리퍼를 후원한 내역(sponsorships/list)을 후원일시 기준 집계. 후원 젬=확정 후원액(confirmedGemAmount), 취소=후원 취소/부분취소 건. 유저 젬의 "사용"과 정확히 일치(검증됨).')}
     <div class="card">
@@ -356,7 +365,7 @@ function buildSpons(){
 /* ---------- 그리퍼 젬 정산 (현금 환전 10% 순수익) ---------- */
 function settleHero(){
   const k=SETTLE.kpi;
-  return `<div class="card hero-net" style="margin-top:14px;--hero:${C.violet}">
+  return `<div class="card hero-net" style="--hero:${C.violet}">
     <div class="hero-net-top"><span class="hero-net-label">💎 그리퍼 정산 순수익 <span class="dim" style="font-weight:500">(젬 환전 시 받는 10% 수수료)</span></span>${tip('그리퍼가 후원받은 젬을 현금으로 환전(출금)할 때 그립이 가져가는 10% 수수료(후원하기 이용료)의 누적 합계입니다. 그리퍼는 90%를 수령합니다. 2025-12~현재, 개인·사업자 그리퍼 전체, 환전 완료·대기·보류를 모두 포함한 발생 기준.')}</div>
     <div class="hero-net-value">${won(k.totalFee)}</div>
     <div class="hero-net-break"><span><b style="color:var(--mint)">환전 완료</b> ${won(k.completedFee)} <span class="dim">${fmt(k.completedCount)}건</span></span><span><b style="color:var(--amber)">환전 대기</b> ${won(k.pendingFee)} <span class="dim">${fmt(k.pendingCount)}건</span></span><span><b style="color:var(--text-mid)">정산 그리퍼</b> ${fmt(k.uniqueGrippers)}명</span></div>

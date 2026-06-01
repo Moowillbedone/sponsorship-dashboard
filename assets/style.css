@@ -58,6 +58,9 @@ body{
 }
 .brand-text h1{font-size:16px;font-weight:700;letter-spacing:-.02em}
 .brand-text p{font-size:12px;color:var(--text-dim);font-weight:500;margin-top:1px}
+.brand-text .brand-rev{font-size:12px;font-weight:600;color:var(--text-mid);margin-top:4px;white-space:nowrap}
+.brand-text .brand-rev b{color:var(--mint);font-weight:700}
+.brand-text .brand-rev .bdim{color:var(--text-dim);font-weight:500}
 
 .tabs{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--border);padding:4px;border-radius:99px;margin:0 auto}
 .tab{
