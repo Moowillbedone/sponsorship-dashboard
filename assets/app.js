@@ -67,13 +67,16 @@ function rankList(rows, valFn, accent){
       <div class="rank-cnt">${fmt(r.count)}건</div>
     </div>`).join('')+`</div>`;
 }
-function barList(rows, max){
-  const mx = max || Math.max(...rows.map(r=>r.value),1);
+function barList(rows, max, total){
+  const vals=rows.map(r=>r.value);
+  const mx = max || Math.max(...vals,1);
+  // 비중 기준: total 지정 시 그 값, 아니면 max 지정(퍼널=최대단계 대비) 또는 합계(분포 비중)
+  const pctBase = total || (max ? mx : vals.reduce((a,b)=>a+b,0)) || 1;
   return `<div class="barlist">`+rows.map(r=>`
     <div class="barlist-row">
       <div class="barlist-label" title="${esc(r.label)}">${esc(r.label)}</div>
       <div class="barlist-track"><div class="barlist-fill" style="width:${(r.value/mx*100).toFixed(1)}%;${r.color?`background:linear-gradient(90deg,${r.color}88,${r.color})`:''}"></div></div>
-      <div class="barlist-val">${r.disp||fmt(r.value)}</div>
+      <div class="barlist-val">${r.disp||fmt(r.value)}<span class="barlist-pct">${(r.value/pctBase*100).toFixed(1)}%</span></div>
     </div>`).join('')+`</div>`;
 }
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -216,9 +219,19 @@ function barChart(id, labels, values, color, opts){
 }
 
 /* ---------- META ---------- */
+function durationKor(from,to){
+  const a=new Date(from+'T00:00:00'), b=new Date(to+'T00:00:00');
+  if(isNaN(a)||isNaN(b)) return '';
+  let mo=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+  let dd=b.getDate()-a.getDate();
+  if(dd<0){ mo--; dd+=new Date(b.getFullYear(),b.getMonth(),0).getDate(); }
+  if(mo<0) return '';
+  return mo+'개월'+(dd>0?' '+dd+'일':'');
+}
 function renderMeta(){
   const m=DATA.meta;
-  $('#dateRange').textContent = `${m.dateRange.from} ~ ${m.dateRange.to}`;
+  const dur=durationKor(m.dateRange.from, m.dateRange.to);
+  $('#dateRange').textContent = `${m.dateRange.from} ~ ${m.dateRange.to}${dur?' · '+dur:''}`;
   const d=new Date(m.generatedAt);
   const p=n=>String(n).padStart(2,'0');
   $('#updatedAt').textContent = `갱신 ${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
@@ -341,6 +354,7 @@ function renderSpons(){
     </div>
     ${sectionHead('기간별 후원 추이','일 / 주 / 월 단위')}
     ${periodHTML('spons','후원젬 · 후원건수 · 취소건')}
+    ${renderSponsorSource()}
     ${SETTLE?renderSettlement():''}`;
   $('#view-spons').innerHTML = html;
 }
@@ -417,6 +431,48 @@ function buildSettlement(){
   doughnutChart('st-state', st.byState.map(s=>s.state), st.byState.map(s=>s.fee), st.byState.map(s=>s.state==='완료'?C.mint:s.state==='대기중'?C.amber:C.red));
 }
 
+/* ---------- 후원 재원 분석 (후원된 젬의 출처: 결제 vs 광고) + 수익 중복 검증 ---------- */
+function renderSponsorSource(){
+  const ref=DATA.gems.byReferrer||[];
+  const acc=k=>{const f=ref.find(r=>r.referrer===k);return (f&&f.accrual)||0;};
+  const pur=acc('PURCHASE'), rew=acc('REWARD'), man=acc('MANUAL_GEM');
+  const base=pur+rew+man; if(!base) return '';
+  const sponsored=DATA.spons.kpi.confirmedAmt;
+  const pPur=pur/base, pRew=rew/base, pMan=man/base;
+  const settleFee=SETTLE?SETTLE.kpi.totalFee:0;
+  const purchNet=(DATA.purch&&DATA.purch.kpi)?Math.round(DATA.purch.kpi.totalPrice*0.1):0;
+  return `
+    ${sectionHead('🔍 후원 재원 분석 — 그리퍼가 받은 젬은 어디서 왔나','후원된 젬의 출처(결제 vs 광고) 추정','젬은 출처가 섞이는 재화라 후원에 쓰인 젬의 정확한 출처 추적은 어렵습니다. 대신 전체 유저 적립의 경로별 금액 비율로 후원받은 젬(확정 후원액)의 출처를 추정합니다. 적립 출처 = 인앱결제(유료 충전)·광고미션(무료 적립)·수기지급. ※ 건수는 광고가 16배 많지만 금액은 결제가 광고의 34배 — 후원 재원의 대부분이 결제 젬.')}
+    <div class="grid c2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">유저 적립 젬의 경로별 금액</div><div class="card-meta">후원 재원 풀 · 단위 젬</div></div>
+        ${barList([
+          {label:'인앱결제 (유료 충전)',value:pur,color:C.mint},
+          {label:'광고미션 (무료 적립)',value:rew,color:C.blue},
+          {label:'수기 지급',value:man,color:C.violet}
+        ].map(m=>({label:m.label,value:m.value,disp:fmtKor(m.value)+'젬',color:m.color})))}
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">후원된 ${fmtKor(sponsored)}젬의 추정 출처</div><div class="card-meta">적립 비율로 안분</div></div>
+        ${barList([
+          {label:'결제기원 후원',value:Math.round(sponsored*pPur),color:C.mint},
+          {label:'광고기원 후원',value:Math.round(sponsored*pRew),color:C.blue},
+          {label:'수기기원 후원',value:Math.round(sponsored*pMan),color:C.violet}
+        ].map(m=>({label:m.label,value:m.value,disp:fmtKor(m.value)+'젬',color:m.color})))}
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><div class="card-title">💡 수익 중복 검증 — 이중 수취 구조지만 중복 아님</div><div class="card-meta">결제 10% vs 정산 10% 최종 확인</div></div>
+      <div style="padding:4px 2px;font-size:13.5px;line-height:2;color:var(--text-mid)">
+        <b style="color:var(--mint)">① 인앱결제 시점</b> — 유저가 젬 충전 시 <b>결제액의 10%</b> 수취(젬 판매 마진) → 결제 순수익 <b style="color:var(--text)">${won(purchNet)}</b><br>
+        <b style="color:var(--violet)">② 환전(정산) 시점</b> — 그리퍼가 후원받은 젬 현금화 시 <b>환전액의 10%</b> 수취 → 정산 순수익 <b style="color:var(--text)">${won(settleFee)}</b><br>
+        <span style="color:var(--text-dim);font-size:12px">────────</span><br>
+        ✅ <b style="color:var(--text)">중복 아님</b> — ①은 <u>유저→회사</u>(젬 판매), ②는 <u>그리퍼→회사</u>(환전 수수료). 수취 <b>시점·주체·명목이 모두 다른 별개 거래</b>라 총 순수익 합산에 중복 계상이 없습니다.<br>
+        🏆 다만 후원의 <b style="color:var(--mint)">약 ${(pPur*100).toFixed(0)}%가 결제 젬</b>이라, '<b>결제→후원→환전</b>' 경로의 젬은 회사가 <b>①+② 두 번</b> 수취하는 가장 수익성 높은 황금 경로입니다. (광고기원 젬은 광고수익 + ② 환전 10%)
+      </div>
+    </div>`;
+}
+
 /* ===================== PURCH ===================== */
 function renderPurch(){
   const p=DATA.purch, k=p.kpi;
@@ -442,7 +498,7 @@ function renderPurch(){
       </div>
       <div class="card">
         <div class="card-head"><div class="card-title">젬 번들별 판매</div><div class="card-meta">상품별 결제 건수</div></div>
-        ${barList(p.byBundle.slice(0,8).map(b=>({label:b.bundle,value:b.count,disp:fmt(b.count)+'건',color:C.amber})))}
+        ${barList(p.byBundle.slice(0,8).map(b=>({label:b.bundle,value:b.count,disp:fmt(b.count)+'건',color:C.amber})), null, p.byBundle.reduce((a,b)=>a+b.count,0))}
       </div>
     </div>
     <div class="card" style="margin-top:14px">
@@ -529,10 +585,9 @@ function renderAds(){
       <div class="card">
         <div class="card-head"><div class="card-title">광고 수익 종합</div><div class="card-meta">전체 기간</div></div>
         <div style="padding:6px 2px;font-size:13.5px;line-height:2.4;color:var(--text-mid)">
-          SDK 오퍼월: <b style="color:var(--mint)">${fmtKor(sk.totalRevenue)}원</b><br>
-          SSP 미디에이션: <b style="color:var(--violet)">$${fmt2(sp.totalCost)}</b> <span style="color:var(--text-dim);font-size:12px">≈ ${fmtKor(Math.round(sp.totalCost*1400))}원</span><br>
-          합산 추정: <b style="color:var(--text)">${fmtKor(sk.totalRevenue + Math.round(sp.totalCost*1400))}원</b> <span style="color:var(--text-dim);font-size:12px">(SSP 환율 1,400 가정)</span><br>
-          평균 eCPM: <b style="color:var(--blue)">$${eCPM.toFixed(3)}</b>
+          SDK 오퍼월: <b style="color:var(--mint)">${fmtKor(sk.totalRevenue)}원</b> <span style="color:var(--text-dim);font-size:12px">· eCPM(방문당) ${fmt(sk.totalVisit?sk.totalRevenue/sk.totalVisit*1000:0)}원</span><br>
+          SSP 미디에이션: <b style="color:var(--violet)">$${fmt2(sp.totalCost)}</b> <span style="color:var(--text-dim);font-size:12px">≈ ${fmtKor(Math.round(sp.totalCost*1400))}원 · eCPM $${eCPM.toFixed(3)}</span><br>
+          합산 추정: <b style="color:var(--text)">${fmtKor(sk.totalRevenue + Math.round(sp.totalCost*1400))}원</b> <span style="color:var(--text-dim);font-size:12px">(SSP 환율 1,400 가정)</span>
         </div>
       </div>
     </div>
@@ -545,7 +600,7 @@ function renderAds(){
     <div class="kpi-grid">
       ${kpi('쿠팡 순매체비', won(cp.kpi.totalClientCommission), '', '우리 최종 수익', C.amber)}
       ${kpi('거래액(GMV)', fmt(cp.kpi.totalRevenue), '원', `구매 ${fmt(cp.kpi.totalConversion)}건`, C.mint)}
-      ${kpi('클릭 수', fmt(cp.kpi.totalClick), '회', `구매전환 ${(cp.kpi.totalConversion/cp.kpi.totalClick*100).toFixed(1)}%`, C.blue)}
+      ${kpi('클릭 수', fmt(cp.kpi.totalClick), '회', `구매전환 ${(cp.kpi.totalConversion/cp.kpi.totalClick*100).toFixed(1)}% · 클릭당 ${fmt(cp.kpi.totalClick?cp.kpi.totalClientCommission/cp.kpi.totalClick:0)}원`, C.blue)}
       ${kpi('객단가', fmt(cp.kpi.totalConversion?cp.kpi.totalConvRevenue/cp.kpi.totalConversion:0), '원', '구매 1건당 금액', C.violet)}
     </div>
     <div class="card">
