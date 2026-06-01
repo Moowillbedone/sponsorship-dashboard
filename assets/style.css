@@ -248,6 +248,18 @@ body{
 .bookmarklet{display:inline-block;background:var(--mint);color:#04130c;font-weight:700;font-size:14.5px;padding:12px 24px;border-radius:11px;text-decoration:none;cursor:grab;box-shadow:0 4px 18px var(--mint-glow);user-select:none}
 .bookmarklet:hover{background:#54e6a8}
 .bookmarklet:active{cursor:grabbing}
+.rg-block{padding:15px 0;border-top:1px solid var(--border)}
+.rg-block:first-of-type{border-top:0;padding-top:2px}
+.rg-h{font-size:14.5px;font-weight:700;color:var(--text);margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.rg-tag{font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--mint);color:#04130c}
+.rg-tag.dim{background:rgba(255,255,255,.08);color:var(--text-dim)}
+.btn-primary{font-family:inherit;font-weight:700;font-size:14px;background:var(--mint);color:#04130c;border:0;padding:12px 20px;border-radius:11px;cursor:pointer;width:100%;transition:.15s;box-shadow:0 4px 18px var(--mint-glow)}
+.btn-primary:hover{background:#54e6a8}
+.btn-primary:disabled{opacity:.55;cursor:wait;box-shadow:none}
+.rg-status{font-size:12.5px;margin-top:9px;color:var(--text-dim);min-height:16px;line-height:1.5}
+.rg-status.run{color:#f5c451}
+.rg-status.ok{color:var(--mint)}
+.rg-status.err{color:#ff6b6b}
 
 /* 광고 총 순수익 히어로 카드 */
 .hero-net{margin-bottom:14px;background:linear-gradient(135deg,rgba(61,220,151,.1),rgba(61,220,151,.02));border-color:var(--mint-soft)}

@@ -8,5 +8,8 @@
         { "key": "Referrer-Policy", "value": "no-referrer" }
       ]
     }
+  ],
+  "crons": [
+    { "path": "/api/collect", "schedule": "0 17 * * *" }
   ]
 }
