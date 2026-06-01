@@ -191,7 +191,7 @@ function lineChart(id, labels, datasets){
   datasets.forEach(d=>{ if(d.fill) d.backgroundColor=gradient(ctx,d._c); d.borderColor=d._c; d.borderWidth=2; d.tension=.35; d.pointRadius=0; d.pointHoverRadius=4; d.pointHoverBackgroundColor=d._c; d.pointHoverBorderColor='#08110d'; d.pointHoverBorderWidth=2; });
   return new Chart(ctx,{type:'line',data:{labels,datasets},options:{
     interaction:{mode:'index',intersect:false},
-    scales:{ x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}}, y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmtKor(v)},border:{display:false}} },
+    scales:{ x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}}, y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmt(v)},border:{display:false}} },
     plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}}
   }});
 }
@@ -205,7 +205,7 @@ function barChart(id, labels, values, color, opts){
   opts=opts||{}; const cv=document.getElementById(id); if(!cv) return; const ctx=cv.getContext('2d');
   const bg = opts.perBar ? color : labels.map(()=>color);
   return new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:bg,borderRadius:5,maxBarThickness:opts.thick||30}]},options:{
-    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:opts.maxTicks||24}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmtKor(v)},border:{display:false}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:opts.maxTicks||24}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmt(v)},border:{display:false}}},
     plugins:{tooltip:{callbacks:{label:c=>` ${opts.unit==='won'?fmt(c.parsed.y)+'원':fmt(c.parsed.y)+(opts.unit||'')}`}}}
   }});
 }
@@ -336,7 +336,7 @@ function buildSpons(){
     {type:'line',label:'후원 건수',data:s.daily.map(d=>d.count),borderColor:C.violet,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'},
   ]},options:{interaction:{mode:'index',intersect:false},scales:{
     x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},
-    y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmtKor(v)},border:{display:false}},
+    y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmt(v)},border:{display:false}},
     y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)+'건'},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}}}});
   doughnutChart('s-state', s.byState.map(t=>STATE_LABEL[t.state]||t.state), s.byState.map(t=>t.count), s.byState.map(t=>STATE_COLORS[t.state]||C.dim));
@@ -389,7 +389,7 @@ function buildPurch(){
     {type:'line',label:'건수',data:p.daily.map(d=>d.count),borderColor:C.blue,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'},
   ]},options:{interaction:{mode:'index',intersect:false},scales:{
     x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},
-    y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmtKor(v)},border:{display:false}},
+    y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmt(v)},border:{display:false}},
     y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)+'건'},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}${c.dataset.label==='매출'?'원':'건'}`}}}}});
   doughnutChart('p-store', p.byStore.map(t=>STORE_LABEL[t.store]||t.store), p.byStore.map(t=>t.price), p.byStore.map(t=>STORE_COLORS[t.store]||C.dim));
@@ -491,7 +491,7 @@ function buildAds(){
   ]},options:{interaction:{mode:'index',intersect:false},scales:{
     x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},
     y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'$'+v.toFixed(1)},border:{display:false}},
-    y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmtKor(v)},border:{display:false}}
+    y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?'$'+c.parsed.y.toFixed(4):fmt(c.parsed.y)+'회'}`}}}}});
   setupPeriod('adsdk', sdk.daily, [{f:'revenue',label:'매출',fmt:won},{f:'android',label:'AOS',fmt:won},{f:'ios',label:'iOS',fmt:won},{f:'complete',label:'완료',fmt:fmt}]);
   setupPeriod('adssp', ssp.daily, [{f:'cost',label:'순매체비($)',fmt:v=>'$'+fmt2(v)},{f:'impression',label:'노출',fmt:fmt},{f:'click',label:'클릭',fmt:fmt}]);
@@ -501,7 +501,7 @@ function buildAds(){
       new Chart(cx,{data:{labels:cp.daily.map(d=>MD(d.date)),datasets:[
         {type:'line',label:'순매체비',data:cp.daily.map(d=>d.revenue),borderColor:C.amber,backgroundColor:gradient(cx,C.amber),borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:true,yAxisID:'y'},
         {type:'line',label:'클릭수',data:cp.daily.map(d=>d.click),borderColor:C.blue,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'}
-      ]},options:{interaction:{mode:'index',intersect:false},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmtKor(v)},border:{display:false}},y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)},border:{display:false}}},plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?won(c.parsed.y):fmt(c.parsed.y)+'회'}`}}}}});
+      ]},options:{interaction:{mode:'index',intersect:false},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmt(v)},border:{display:false}},y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)},border:{display:false}}},plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?won(c.parsed.y):fmt(c.parsed.y)+'회'}`}}}}});
     }
     setupPeriod('adcp', cp.daily, [{f:'revenue',label:'순매체비',fmt:won},{f:'grossRevenue',label:'거래액',fmt:won},{f:'conversion',label:'구매',fmt:fmt},{f:'click',label:'클릭',fmt:fmt}]);
   }
