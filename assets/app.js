@@ -282,7 +282,7 @@ function buildGems(){
   ]);
   doughnutChart('g-type', g.byType.map(t=>t.label), g.byType.map(t=>t.count), g.byType.map(t=>TYPE_COLORS[t.label]||C.dim));
   barChart('g-hour', g.hourly.map(h=>h.hour), g.hourly.map(h=>h.count), C.mint, {maxTicks:12,unit:'건'});
-  setupPeriod('gems', g.daily, [{f:'ACCRUAL',label:'적립',fmt:fmtKor},{f:'USE',label:'사용',fmt:fmtKor},{f:'EXPIRED',label:'만료',fmt:fmtKor},{f:'count',label:'거래건수',fmt:fmt}]);
+  setupPeriod('gems', g.daily, [{f:'ACCRUAL',label:'적립',fmt:fmt},{f:'USE',label:'사용',fmt:fmt},{f:'EXPIRED',label:'만료',fmt:fmt},{f:'count',label:'거래건수',fmt:fmt}]);
   renderPeriodTable('gems'); bindPeriodEvents();
 }
 
@@ -341,7 +341,7 @@ function buildSpons(){
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}}}});
   doughnutChart('s-state', s.byState.map(t=>STATE_LABEL[t.state]||t.state), s.byState.map(t=>t.count), s.byState.map(t=>STATE_COLORS[t.state]||C.dim));
   barChart('s-dist', s.amountDist.map(d=>d.bucket), s.amountDist.map(d=>d.count), C.mint, {maxTicks:8,unit:'건'});
-  setupPeriod('spons', s.daily, [{f:'amount',label:'후원젬',fmt:fmtKor},{f:'count',label:'후원건수',fmt:fmt},{f:'canceled',label:'취소건',fmt:fmt}]);
+  setupPeriod('spons', s.daily, [{f:'amount',label:'후원젬',fmt:fmt},{f:'count',label:'후원건수',fmt:fmt},{f:'canceled',label:'취소건',fmt:fmt}]);
   renderPeriodTable('spons'); bindPeriodEvents();
 }
 
