@@ -85,8 +85,9 @@ const _p2=n=>String(n).padStart(2,'0');
 function weekKey(ds){ const d=new Date(ds+'T00:00:00'); const day=d.getDay(); d.setDate(d.getDate()+(day===0?-6:1-day)); return d.getFullYear()+'-'+_p2(d.getMonth()+1)+'-'+_p2(d.getDate()); }
 function aggPeriod(daily, period, fields){
   if(period==='day') return daily.map(d=>Object.assign({key:d.date}, d));
+  const uf=fields.filter((v,i)=>fields.indexOf(v)===i); // 중복 필드 제거(같은 값 다른 표기 컬럼 대응)
   const g={};
-  for(const row of daily){ const k=period==='week'?weekKey(row.date):row.date.slice(0,7); if(!g[k]){g[k]={key:k}; fields.forEach(f=>g[k][f]=0);} fields.forEach(f=>g[k][f]+=(row[f]||0)); }
+  for(const row of daily){ const k=period==='week'?weekKey(row.date):row.date.slice(0,7); if(!g[k]){g[k]={key:k}; uf.forEach(f=>g[k][f]=0);} uf.forEach(f=>g[k][f]+=(row[f]||0)); }
   return Object.values(g).sort((a,b)=>a.key<b.key?-1:1);
 }
 function setupPeriod(key, daily, fields){ PERIOD_CFG[key]={daily,fields}; if(!periodState[key]) periodState[key]={period:'day',page:0}; }
@@ -161,8 +162,9 @@ function advisor(key){
     const p=DATA.purch,k=p.kpi; const arppu=k.uniqueBuyers?k.totalPrice/k.uniqueBuyers:0;
     const goog=p.byStore.find(x=>x.store==='GOOGLE_PLAY'),googR=goog&&k.totalPrice?goog.price/k.totalPrice*100:0;
     const tPrice=trend(p.daily,'price');
-    items.push(['insight',`구매자 1인 평균 결제(ARPPU) <b>${fmtKor(arppu)}원</b> · 평균 객단가 ${fmt(k.avgPrice)}원 ${tBadge(tPrice)}`]);
-    items.push(['insight',`유료 충전 젬은 광고 적립과 함께 <b>후원 실탄</b>의 두 축 — 결제는 회사 직접 매출`]);
+    items.push(['insight',`총 매출 <b>${fmt(k.totalPrice)}원</b> 중 <b>실제 순수익은 10%인 ${fmt(Math.round(k.totalPrice*0.1))}원</b> — 앱스토어·구글 결제 수수료, 원가 등을 제외한 회사 실수령액 ${tBadge(tPrice)}`]);
+    items.push(['insight',`구매자 1인 평균 결제(ARPPU) <b>${fmtKor(arppu)}원</b> · 평균 객단가 ${fmt(k.avgPrice)}원`]);
+    items.push(['impact',`결제는 회사 직접 매출이지만 <b>실수령은 매출의 10%</b> — 결제액 키우기 + 수수료/원가 구조 개선이 순수익 레버`]);
     if(googR>60) items.push(['bad',`Google Play 매출 비중 <b>${P(googR)}</b> — iOS 결제 전환이 상대적으로 낮음, iOS 충전 UX 개선 여지`]);
     items.push(['todo',`고액 결제 Top 유저 = 핵심 과금층 → VIP 혜택·한정 젬 패키지로 LTV 극대화`]);
     items.push(['todo',`무료 적립→유료 충전 전환 퍼널 최적화로 구매자 수 자체를 확대`]);
@@ -349,8 +351,8 @@ function renderPurch(){
   const html = `
     <div class="kpi-grid">
       ${kpi('총 결제', fmt(k.total), '건', `완료 ${fmt(k.purchasedCount)}건`, C.mint)}
-      ${kpi('총 매출', fmt(k.totalPrice), '원', `일평균 ${fmt(k.totalPrice/p.daily.length)}원`, C.mint)}
-      ${kpi('판매 젬', fmt(k.totalGem), '젬', `유료 충전된 젬`, C.amber)}
+      ${kpi('총 매출', fmt(k.totalPrice), '원', `판매 ${fmt(k.totalGem)}젬`, C.mint)}
+      ${kpi('순수익', fmt(Math.round(k.totalPrice*0.1)), '원', `매출의 10% · 일평균 ${fmt(Math.round(k.totalPrice*0.1/p.daily.length))}원`, C.amber)}
       ${kpi('구매 유저', fmt(k.uniqueBuyers), '명', `평균 결제 <b style="color:var(--text)">${fmt(k.avgPrice)}원</b>`, C.blue)}
     </div>
     ${advisor('purch')}
@@ -391,7 +393,7 @@ function buildPurch(){
     y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)+'건'},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}${c.dataset.label==='매출'?'원':'건'}`}}}}});
   doughnutChart('p-store', p.byStore.map(t=>STORE_LABEL[t.store]||t.store), p.byStore.map(t=>t.price), p.byStore.map(t=>STORE_COLORS[t.store]||C.dim));
-  setupPeriod('purch', p.daily, [{f:'price',label:'매출(원)',fmt:fmtKor},{f:'count',label:'결제건수',fmt:fmt}]);
+  setupPeriod('purch', p.daily, [{f:'price',label:'매출',fmt:won},{f:'price',label:'순수익(10%)',fmt:v=>won(Math.round(v*0.1))},{f:'count',label:'결제건수',fmt:fmt}]);
   renderPeriodTable('purch'); bindPeriodEvents();
 }
 
