@@ -51,7 +51,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({ message: `data: ${type} 자동 동기화 (북마클릿)`, content, sha, branch: 'main' }),
     });
     if (!put.ok) return res.status(502).json({ error: 'github commit failed: ' + (await put.text()).slice(0, 300) });
-    return res.status(200).json({ ok: true, type, path, days: data.kpi.days || data.kpi.count || null });
+    const _k = data.kpi || (data.gems && data.gems.kpi) || {};
+    return res.status(200).json({ ok: true, type, path, days: _k.days || _k.count || null });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
