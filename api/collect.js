@@ -19,10 +19,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const pad = n => String(n).padStart(2, '0');
 const dStr = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 
+const ADMIN_HEADERS = tok => ({ Authorization: 'Bearer ' + tok, Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36', Origin: 'https://admin2.grip.show', Referer: 'https://admin2.grip.show/' });
 async function fc(url, tok) {
   for (let k = 0; k < 6; k++) {
     try {
-      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + tok, Accept: 'application/json' } });
+      const res = await fetch(url, { headers: ADMIN_HEADERS(tok) });
       if (res.status === 401 || res.status === 403) throw new Error('UNAUTHORIZED');
       if (!res.ok) throw new Error('http ' + res.status);
       return await res.json();
@@ -136,8 +137,14 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Sync-Key');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const TOKEN = process.env.GITHUB_TOKEN, REPO = process.env.GITHUB_REPO, ADMIN_TOKEN = process.env.ADMIN_TOKEN, SECRET = process.env.SYNC_SECRET;
+  const TOKEN = process.env.GITHUB_TOKEN, REPO = process.env.GITHUB_REPO, ADMIN_TOKEN = (process.env.ADMIN_TOKEN || '').trim(), SECRET = process.env.SYNC_SECRET;
   if (!TOKEN || !REPO || !ADMIN_TOKEN) return res.status(500).json({ error: 'env 미설정: GITHUB_TOKEN, GITHUB_REPO, ADMIN_TOKEN 필요' });
+  if ((req.url || '').includes('debug=1')) {
+    try {
+      const tr = await fetch(`${ADMIN}/gems?draw=1&start=0&length=1&search%5BfromDate%5D=2026-01-01&search%5BtoDate%5D=2026-01-02&search%5BdateTarget%5D=ISSUED_AT&search%5BqueryTarget%5D=GEM_HISTORY_SEQ&search%5Bquery%5D=`, { headers: ADMIN_HEADERS(ADMIN_TOKEN) });
+      return res.status(200).json({ debug: true, adminStatus: tr.status, tokenLen: ADMIN_TOKEN.length, rawLen: (process.env.ADMIN_TOKEN || '').length });
+    } catch (e) { return res.status(200).json({ debug: true, err: e.message }); }
+  }
   const isCron = !!req.headers['x-vercel-cron'];
   if (SECRET && !isCron && req.headers['x-sync-key'] !== SECRET) return res.status(401).json({ error: 'unauthorized (bad sync key)' });
 
