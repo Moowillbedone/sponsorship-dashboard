@@ -142,7 +142,8 @@ export default async function handler(req, res) {
   if ((req.url || '').includes('debug=1')) {
     try {
       const tr = await fetch(`${ADMIN}/gems?draw=1&start=0&length=1&search%5BfromDate%5D=2026-01-01&search%5BtoDate%5D=2026-01-02&search%5BdateTarget%5D=ISSUED_AT&search%5BqueryTarget%5D=GEM_HISTORY_SEQ&search%5Bquery%5D=`, { headers: ADMIN_HEADERS(ADMIN_TOKEN) });
-      return res.status(200).json({ debug: true, adminStatus: tr.status, tokenLen: ADMIN_TOKEN.length, rawLen: (process.env.ADMIN_TOKEN || '').length });
+      const bodyHead = (await tr.text()).slice(0, 200);
+      return res.status(200).json({ debug: true, adminStatus: tr.status, server: tr.headers.get('server'), cfRay: tr.headers.get('cf-ray'), bodyHead, tokenLen: ADMIN_TOKEN.length });
     } catch (e) { return res.status(200).json({ debug: true, err: e.message }); }
   }
   const isCron = !!req.headers['x-vercel-cron'];
