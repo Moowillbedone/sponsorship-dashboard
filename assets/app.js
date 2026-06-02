@@ -42,7 +42,7 @@ Chart.defaults.plugins.tooltip.titleFont = {weight:'700',size:12};
 Chart.defaults.plugins.tooltip.boxPadding = 5;
 Chart.defaults.maintainAspectRatio = false;
 
-let DATA=null, ADS=null, SETTLE=null; const built={};
+let DATA=null, ADS=null, SETTLE=null, ACT=null; const built={};
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -525,6 +525,67 @@ function buildPurch(){
   renderPeriodTable('purch'); bindPeriodEvents();
 }
 
+/* ===================== ACTIVITY (유저 인사이트: 후원 vs 비후원) ===================== */
+function renderActivity(){
+  const v=$('#view-activity'); if(!v) return;
+  if(!ACT||!ACT.groups){ v.innerHTML='<div class="card"><div style="padding:24px;color:var(--text-dim)">활성도 데이터가 아직 없습니다.</div></div>'; return; }
+  const g=ACT.groups;
+  const sp=g.find(x=>x.key==='sponsor')||{}, ge=g.find(x=>x.key==='general')||{}, ad=g.find(x=>x.key==='adHeavy')||{};
+  const fX=ge.following?Math.round(sp.following/ge.following):0;
+  const oX=ge.order?Math.round(sp.order/ge.order):0;
+  v.innerHTML=`
+    <div class="card hero-net" style="--hero:${C.mint}">
+      <div class="hero-net-top"><span class="hero-net-label">🔥 후원 유저는 일반 유저보다 압도적으로 활성적입니다</span>${tip('admin의 개별 유저 프로필(팔로우 수·최근 접속일·주문 건수·보유 젬)을 그룹별 표본으로 추출해 평균 비교한 결과입니다. 후원 유저 '+(sp.n||0)+'명 · 광고적립(비후원) '+(ad.n||0)+'명 · 무작위 일반 '+(ge.n||0)+'명 표본 기반 추정.')}</div>
+      <div class="hero-act">
+        <div class="hero-act-item"><div class="hero-act-num">${fX}배</div><div class="hero-act-lab">그리퍼 팔로우<span>${sp.following} vs ${ge.following}명</span></div></div>
+        <div class="hero-act-item"><div class="hero-act-num">${oX}배</div><div class="hero-act-lab">라이브 구매<span>${fmt(sp.order)} vs ${ge.order}건</span></div></div>
+        <div class="hero-act-item"><div class="hero-act-num">${sp.d7}%</div><div class="hero-act-lab">7일 재방문율<span>일반 ${ge.d7}%</span></div></div>
+      </div>
+    </div>
+    ${sectionHead('그룹별 활성도 비교','후원 · 광고적립(비후원) · 일반 유저 1인 평균','admin 개별 프로필 표본 집계. 후원 유저=최근 후원자, 광고적립=광고미션으로 젬을 모으지만 후원은 안 함, 일반=무작위 추출(장기 휴면 포함).')}
+    <div class="grid c2">
+      <div class="card"><div class="card-head"><div class="card-title">1인 평균 그리퍼 팔로우</div><div class="card-meta">명</div></div><div class="chart-wrap"><canvas id="act-follow"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">1인 평균 라이브 구매</div><div class="card-meta">주문 건수</div></div><div class="chart-wrap"><canvas id="act-order"></canvas></div></div>
+    </div>
+    ${sectionHead('리텐션 — 재방문율 (D1·D7·D30)','마지막 접속이 최근 N일 내인 유저 비율','각 그룹 표본 중 최근 2일·7일·30일 내 접속 기록이 있는 유저 비율. 후원 유저는 사실상 매일 접속, 일반 유저는 대부분 장기 휴면.')}
+    <div class="card"><div class="chart-wrap tall"><canvas id="act-retention"></canvas></div>${legend([{label:'후원 유저',color:C.mint},{label:'광고적립(비후원)',color:C.blue},{label:'일반 유저',color:C.dim}])}</div>
+    ${sectionHead('후원 유저는 누구인가','연령·성별 분포 (후원 유저 표본)','후원 유저 표본의 연령대·성별 구성.')}
+    <div class="grid c2">
+      <div class="card"><div class="card-head"><div class="card-title">연령 분포</div></div><div class="chart-wrap"><canvas id="act-age"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">성별 분포</div></div><div class="chart-wrap"><canvas id="act-gender"></canvas></div></div>
+    </div>
+    <div class="card advisor" style="margin-top:14px">
+      <div class="card-head"><div class="card-title">🤖 인사이트 — 후원은 곧 활성</div><div class="card-meta">표본 기반 경향 분석</div></div>
+      <div class="adv-grid">
+        <div class="adv-block adv-insight"><div class="adv-h">💡 핵심 발견</div><ul>
+          <li>후원 유저는 일반 유저 대비 <b>팔로우 ${fX}배 · 라이브 구매 ${oX}배</b> — 단순 결제자가 아니라 <b>플랫폼에 깊이 관여한 핵심 활성층</b></li>
+          <li>후원 유저 <b>7·30일 재방문율 ${sp.d7}%·${sp.d30}%</b> vs 일반 ${ge.d7}%·${ge.d30}% — 후원 행위가 <b>최상위 리텐션 시그널</b></li>
+          <li>후원 유저 평균 보유 젬 <b>${fmt(sp.gem)}</b> vs 일반 ${fmt(ge.gem)} — 후원을 위해 젬을 적극 보유·순환</li>
+        </ul></div>
+        <div class="adv-block adv-todo"><div class="adv-h">🎯 ASIS → TOBE 기회</div><ul>
+          <li><b>광고적립 유저(비후원·활성)</b>는 이미 7일 재방문 ${ad.d7}% · 라이브 구매 ${fmt(ad.order)}건으로 활발하나 <b>후원 경험은 0</b> — 이들의 <b>첫 후원 전환</b>이 매출·리텐션을 동시에 끌어올리는 가장 가까운 레버</li>
+          <li>후원 매출 절대액이 아직 작아도, <b>후원 유저 1명의 활성도 ≒ 일반 유저 수십 명</b> — 후원자 수 확대가 곧 핵심 지표(리텐션·GMV) 상승으로 직결</li>
+        </ul></div>
+      </div>
+    </div>`;
+}
+function buildActivity(){
+  if(!ACT||!ACT.groups) return;
+  const g=ACT.groups, labels=g.map(x=>x.label), cols=[C.mint,C.blue,C.dim];
+  barChart('act-follow', labels, g.map(x=>x.following), cols, {perBar:true, maxTicks:3, unit:'명'});
+  barChart('act-order', labels, g.map(x=>x.order), cols, {perBar:true, maxTicks:3, unit:'건'});
+  const cv=document.getElementById('act-retention');
+  if(cv){ const ctx=cv.getContext('2d');
+    new Chart(ctx,{type:'bar',data:{labels:['2일 내 (D1)','7일 내 (D7)','30일 내 (D30)'],datasets:g.map((grp,i)=>({label:grp.label,data:[grp.d2,grp.d7,grp.d30],backgroundColor:cols[i],borderRadius:5,maxBarThickness:40}))},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}%`}}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>v+'%'},border:{display:false},max:100}}}});
+  }
+  const sp=g.find(x=>x.key==='sponsor')||{};
+  const ageL={AGE10:'10대',AGE20:'20대',AGE30:'30대',AGE40:'40대',AGE50:'50대',AGE60:'60대+',UNKNOWN:'미상'};
+  const genL={F:'여성',M:'남성',X:'미지정',U:'미상'};
+  const ageOrder=['AGE10','AGE20','AGE30','AGE40','AGE50','AGE60','UNKNOWN'];
+  if(sp.ages){ const ak=ageOrder.filter(k=>sp.ages[k]); doughnutChart('act-age', ak.map(k=>ageL[k]), ak.map(k=>sp.ages[k]), [C.dim,C.blue,C.teal,C.mint,C.amber,C.violet,C.dim].slice(0,ak.length)); }
+  if(sp.gender){ const gk=Object.keys(sp.gender); doughnutChart('act-gender', gk.map(k=>genL[k]||k), gk.map(k=>sp.gender[k]), [C.pink,C.blue,C.dim,C.dim].slice(0,gk.length)); }
+}
+
 /* ===================== ADS (광고 수익) ===================== */
 function renderAds(){
   const sdk=ADS.sdk, ssp=ADS.ssp, cp=ADS.coupang, sk=sdk.kpi, sp=ssp.kpi;
@@ -644,7 +705,7 @@ function buildAds(){
 }
 
 /* ---------- tabs ---------- */
-const VIEWS = { ads:buildAds, gems:buildGems, spons:buildSpons, purch:buildPurch };
+const VIEWS = { ads:buildAds, gems:buildGems, spons:buildSpons, purch:buildPurch, activity:buildActivity };
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
@@ -703,17 +764,19 @@ function showRefreshGuide(){
 /* ---------- init ---------- */
 async function init(){
   try{
-    const [sr,sdkr,sspr,cpr,setr] = await Promise.all([
+    const [sr,sdkr,sspr,cpr,setr,actr] = await Promise.all([
       fetch('data/snapshot.json?t='+Date.now()),
       fetch('data/ads-sdk.json?t='+Date.now()),
       fetch('data/ads-ssp.json?t='+Date.now()),
       fetch('data/ads-coupang.json?t='+Date.now()).catch(()=>null),
-      fetch('data/spons-settlement.json?t='+Date.now()).catch(()=>null)
+      fetch('data/spons-settlement.json?t='+Date.now()).catch(()=>null),
+      fetch('data/activity.json?t='+Date.now()).catch(()=>null)
     ]);
     DATA = await sr.json();
     ADS = { meta:{}, sdk: await sdkr.json(), ssp: await sspr.json(), coupang: (cpr && cpr.ok) ? await cpr.json() : null };
     SETTLE = (setr && setr.ok) ? await setr.json() : null;
-    renderMeta(); renderAds(); renderGems(); renderSpons(); renderPurch();
+    ACT = (actr && actr.ok) ? await actr.json() : null;
+    renderMeta(); renderAds(); renderGems(); renderSpons(); renderPurch(); renderActivity();
     buildAds(); built.ads=true;
     $('#loading').style.display='none';
     setupTabs(); setupRefresh();
