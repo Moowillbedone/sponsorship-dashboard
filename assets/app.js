@@ -542,18 +542,6 @@ function renderActivity(){
         <div class="hero-act-item"><div class="hero-act-num">${sp.d7}%</div><div class="hero-act-lab">7일 재방문율<span>일반 ${ge.d7}%</span></div></div>
       </div>
     </div>
-    ${sectionHead('그룹별 활성도 비교','후원 · 광고적립(비후원) · 일반 유저 1인 평균','admin 개별 프로필 표본 집계. 후원 유저=최근 후원자, 광고적립=광고미션으로 젬을 모으지만 후원은 안 함, 일반=무작위 추출(장기 휴면 포함).')}
-    <div class="grid c2">
-      <div class="card"><div class="card-head"><div class="card-title">1인 평균 그리퍼 팔로우</div><div class="card-meta">명</div></div><div class="chart-wrap"><canvas id="act-follow"></canvas></div></div>
-      <div class="card"><div class="card-head"><div class="card-title">1인 평균 라이브 구매</div><div class="card-meta">주문 건수</div></div><div class="chart-wrap"><canvas id="act-order"></canvas></div></div>
-    </div>
-    ${sectionHead('리텐션 — 재방문율 (D1·D7·D30)','마지막 접속이 최근 N일 내인 유저 비율','각 그룹 표본 중 최근 2일·7일·30일 내 접속 기록이 있는 유저 비율. 후원 유저는 사실상 매일 접속, 일반 유저는 대부분 장기 휴면.')}
-    <div class="card"><div class="chart-wrap tall"><canvas id="act-retention"></canvas></div>${legend([{label:'후원 유저',color:C.mint},{label:'광고적립(비후원)',color:C.blue},{label:'일반 유저',color:C.dim}])}</div>
-    ${sectionHead('후원 유저는 누구인가','연령·성별 분포 (후원 유저 표본)','후원 유저 표본의 연령대·성별 구성.')}
-    <div class="grid c2">
-      <div class="card"><div class="card-head"><div class="card-title">연령 분포</div></div><div class="chart-wrap"><canvas id="act-age"></canvas></div></div>
-      <div class="card"><div class="card-head"><div class="card-title">성별 분포</div></div><div class="chart-wrap"><canvas id="act-gender"></canvas></div></div>
-    </div>
     <div class="card advisor" style="margin-top:14px">
       <div class="card-head"><div class="card-title">🤖 인사이트 — 후원은 곧 활성</div><div class="card-meta">표본 기반 경향 분석</div></div>
       <div class="adv-grid">
@@ -567,6 +555,18 @@ function renderActivity(){
           <li>후원 매출 절대액이 아직 작아도, <b>후원 유저 1명의 활성도 ≒ 일반 유저 수십 명</b> — 후원자 수 확대가 곧 핵심 지표(리텐션·GMV) 상승으로 직결</li>
         </ul></div>
       </div>
+    </div>
+    ${sectionHead('그룹별 활성도 비교','후원 · 광고적립(비후원) · 일반 유저 1인 평균','admin 개별 프로필 표본 집계. 후원 유저=최근 후원자, 광고적립=광고미션으로 젬을 모으지만 후원은 안 함, 일반=무작위 추출(장기 휴면 포함).')}
+    <div class="grid c2">
+      <div class="card"><div class="card-head"><div class="card-title">1인 평균 그리퍼 팔로우</div><div class="card-meta">명</div></div><div class="chart-wrap"><canvas id="act-follow"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">1인 평균 라이브 구매</div><div class="card-meta">주문 건수</div></div><div class="chart-wrap"><canvas id="act-order"></canvas></div></div>
+    </div>
+    ${sectionHead('리텐션 — 재방문율 (D1·D7·D30)','마지막 접속이 최근 N일 내인 유저 비율','각 그룹 표본 중 최근 2일·7일·30일 내 접속 기록이 있는 유저 비율. 후원 유저는 사실상 매일 접속, 일반 유저는 대부분 장기 휴면.')}
+    <div class="card"><div class="chart-wrap tall"><canvas id="act-retention"></canvas></div>${legend([{label:'후원 유저',color:C.mint},{label:'광고적립(비후원)',color:C.blue},{label:'일반 유저',color:C.dim}])}</div>
+    ${sectionHead('후원 유저는 누구인가','연령·성별 분포 (후원 유저 표본)','후원 유저 표본의 연령대·성별 구성.')}
+    <div class="grid c2">
+      <div class="card"><div class="card-head"><div class="card-title">연령 분포</div></div><div class="chart-wrap"><canvas id="act-age"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">성별 분포</div></div><div class="chart-wrap"><canvas id="act-gender"></canvas></div></div>
     </div>`;
 }
 function buildActivity(){
