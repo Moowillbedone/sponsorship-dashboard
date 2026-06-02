@@ -5,6 +5,7 @@
     "source": "admin user/{seq}/detail · order/count · gems/summary",
     "note": "표본 기반 추정치 — 그룹 간 경향성 비교용"
   },
+  "causality": { "method": "후원 유저 25명의 후원-그리퍼 쌍 45건에 대해, 그리퍼 팔로우 시점(followingAt) vs 첫 후원 시점(sponsoredAt) 선후 비교", "pairs": 45, "followFirst": 41, "followFirstPct": 91, "sameDay": 3, "sameDayPct": 7, "sponsorFirst": 0, "sponsorFirstPct": 0, "noFollow": 1, "noFollowPct": 2 },
   "groups": [
     { "key": "sponsor", "label": "후원 유저", "n": 54,
       "following": 114.5, "order": 289.8, "gem": 7038, "recencyDays": 0.3,

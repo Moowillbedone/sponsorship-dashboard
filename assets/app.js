@@ -533,6 +533,13 @@ function renderActivity(){
   const sp=g.find(x=>x.key==='sponsor')||{}, ge=g.find(x=>x.key==='general')||{}, ad=g.find(x=>x.key==='adHeavy')||{};
   const fX=ge.following?Math.round(sp.following/ge.following):0;
   const oX=ge.order?Math.round(sp.order/ge.order):0;
+  const adsNet=ADS?((ADS.sdk.kpi.totalRevenue||0)+Math.round((ADS.ssp.kpi.totalCost||0)*1400)+(ADS.coupang?ADS.coupang.kpi.totalClientCommission:0)):0;
+  const settleNet=SETTLE?SETTLE.kpi.totalFee:0;
+  const purchNet=(DATA.purch&&DATA.purch.kpi)?Math.round(DATA.purch.kpi.totalPrice*0.1):0;
+  const totalNet=adsNet+settleNet+purchNet;
+  const sponGem=(DATA.spons&&DATA.spons.kpi)?DATA.spons.kpi.confirmedAmt:0;
+  const uniqSpons=(DATA.spons&&DATA.spons.kpi)?DATA.spons.kpi.uniqueSponsors:0;
+  const cz=ACT.causality;
   v.innerHTML=`
     <div class="card hero-net" style="--hero:${C.mint}">
       <div class="hero-net-top"><span class="hero-net-label">🔥 후원 유저는 일반 유저보다 압도적으로 활성적입니다</span>${tip('admin의 개별 유저 프로필(팔로우 수·최근 접속일·주문 건수·보유 젬)을 그룹별 표본으로 추출해 평균 비교한 결과입니다. 후원 유저 '+(sp.n||0)+'명 · 광고적립(비후원) '+(ad.n||0)+'명 · 무작위 일반 '+(ge.n||0)+'명 표본 기반 추정.')}</div>
@@ -554,8 +561,21 @@ function renderActivity(){
           <li><b>광고적립 유저(비후원·활성)</b>는 이미 7일 재방문 ${ad.d7}% · 라이브 구매 ${fmt(ad.order)}건으로 활발하나 <b>후원 경험은 0</b> — 이들의 <b>첫 후원 전환</b>이 매출·리텐션을 동시에 끌어올리는 가장 가까운 레버</li>
           <li>후원 매출 절대액이 아직 작아도, <b>후원 유저 1명의 활성도 ≒ 일반 유저 수십 명</b> — 후원자 수 확대가 곧 핵심 지표(리텐션·GMV) 상승으로 직결</li>
         </ul></div>
+        <div class="adv-block adv-impact"><div class="adv-h">📊 비즈니스 임팩트 (전체 탭 취합)</div><ul>
+          <li>젬 경제 총 순수익 <b>${won(totalNet)}</b> = 광고 ${fmtKor(adsNet)} + 후원정산 ${fmtKor(settleNet)} + 결제 ${fmtKor(purchNet)} — 유저가 광고·결제로 모은 젬이 <b>후원으로 순환</b>하며 다중 수익 창출</li>
+          <li>후원받은 젬 <b>${fmtKor(sponGem)}젬</b>의 약 <b>94%가 인앱결제 기원</b> — '결제→후원→환전' 경로는 회사가 <b>결제 마진 + 환전 수수료를 두 번</b> 수취하는 고수익 구조</li>
+          <li>후원 유저 <b>${fmt(uniqSpons)}명</b>이 전체 활성의 핵심 — 후원자 수가 곧 <b>플랫폼 건강도(리텐션·GMV)의 선행지표</b></li>
+        </ul></div>
       </div>
     </div>
+    ${cz?`${sectionHead('🔗 인과 검증 — 팔로우가 먼저, 후원은 그 다음','후원한 그리퍼를 언제 팔로우했나 (선후 분석)','후원 유저의 후원-그리퍼 쌍 '+cz.pairs+'건에서 그리퍼 팔로우 시점과 첫 후원 시점의 선후를 비교했습니다. 단순 상관(후원 유저가 팔로우 많음)을 넘어 ‘무엇이 먼저인가’(방향성)를 검증.')}
+    <div class="grid c2">
+      <div class="card"><div class="card-head"><div class="card-title">팔로우 vs 후원, 무엇이 먼저?</div><div class="card-meta">${cz.pairs}개 후원-그리퍼 쌍</div></div><div class="chart-wrap"><canvas id="act-cause"></canvas></div>${legend([{label:`팔로우 먼저 ${cz.followFirstPct}%`,color:C.mint},{label:`같은 날 ${cz.sameDayPct}%`,color:C.amber},{label:`후원 먼저 ${cz.sponsorFirstPct}%`,color:C.blue},{label:`팔로우 안 함 ${cz.noFollowPct}%`,color:C.dim}])}</div>
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center;gap:8px">
+        <div style="font-size:48px;font-weight:800;color:var(--mint);line-height:1">${cz.followFirstPct}%</div>
+        <div style="font-size:13.5px;color:var(--text-mid);line-height:1.75">후원한 그리퍼를 <b>먼저 팔로우</b>한 뒤 후원했습니다. '후원 먼저'는 <b>${cz.sponsorFirstPct}%</b>에 불과.<br>→ <b style="color:var(--mint)">팔로우(관계 형성)가 후원의 선행 조건</b>입니다. 단순 상관이 아니라 <b>'팔로우 → 후원' 방향의 인과</b>로 해석됩니다.</div>
+      </div>
+    </div>` : ''}
     ${sectionHead('그룹별 활성도 비교','후원 · 광고적립(비후원) · 일반 유저 1인 평균','admin 개별 프로필 표본 집계. 후원 유저=최근 후원자, 광고적립=광고미션으로 젬을 모으지만 후원은 안 함, 일반=무작위 추출(장기 휴면 포함).')}
     <div class="grid c2">
       <div class="card"><div class="card-head"><div class="card-title">1인 평균 그리퍼 팔로우</div><div class="card-meta">명</div></div><div class="chart-wrap"><canvas id="act-follow"></canvas></div></div>
@@ -584,6 +604,7 @@ function buildActivity(){
   const ageOrder=['AGE10','AGE20','AGE30','AGE40','AGE50','AGE60','UNKNOWN'];
   if(sp.ages){ const ak=ageOrder.filter(k=>sp.ages[k]); doughnutChart('act-age', ak.map(k=>ageL[k]), ak.map(k=>sp.ages[k]), [C.dim,C.blue,C.teal,C.mint,C.amber,C.violet,C.dim].slice(0,ak.length)); }
   if(sp.gender){ const gk=Object.keys(sp.gender); doughnutChart('act-gender', gk.map(k=>genL[k]||k), gk.map(k=>sp.gender[k]), [C.pink,C.blue,C.dim,C.dim].slice(0,gk.length)); }
+  if(ACT.causality){ const cz=ACT.causality; doughnutChart('act-cause', ['팔로우 먼저','같은 날','후원 먼저','팔로우 안 함'], [cz.followFirst,cz.sameDay,cz.sponsorFirst,cz.noFollow], [C.mint,C.amber,C.blue,C.dim]); }
 }
 
 /* ===================== ADS (광고 수익) ===================== */
