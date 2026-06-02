@@ -568,12 +568,12 @@ function renderActivity(){
         </ul></div>
       </div>
     </div>
-    ${cz?`${sectionHead('🔗 인과 검증 — 팔로우가 먼저, 후원은 그 다음','후원한 그리퍼를 언제 팔로우했나 (선후 분석)','후원 유저의 후원-그리퍼 쌍 '+cz.pairs+'건에서 그리퍼 팔로우 시점과 첫 후원 시점의 선후를 비교했습니다. 단순 상관(후원 유저가 팔로우 많음)을 넘어 ‘무엇이 먼저인가’(방향성)를 검증.')}
+    ${cz?`${sectionHead('🔗 인과 검증 — 팔로우가 먼저, 후원은 그 다음','후원한 그리퍼를 언제 팔로우했나 (선후 분석)','후원 유저 '+(cz.sampleUsers?cz.sampleUsers.toLocaleString()+'명 전수의 ':'')+'후원-그리퍼 쌍 '+cz.pairs.toLocaleString()+'건에서 그리퍼 팔로우 시점과 첫 후원 시점의 선후를 비교했습니다. 표본이 아닌 전수 분석으로, 단순 상관(후원 유저가 팔로우 많음)을 넘어 ‘무엇이 먼저인가’(방향성)를 검증.')}
     <div class="grid c2">
-      <div class="card"><div class="card-head"><div class="card-title">팔로우 vs 후원, 무엇이 먼저?</div><div class="card-meta">${cz.pairs}개 후원-그리퍼 쌍</div></div><div class="chart-wrap"><canvas id="act-cause"></canvas></div>${legend([{label:`팔로우 먼저 ${cz.followFirstPct}%`,color:C.mint},{label:`같은 날 ${cz.sameDayPct}%`,color:C.amber},{label:`후원 먼저 ${cz.sponsorFirstPct}%`,color:C.blue},{label:`팔로우 안 함 ${cz.noFollowPct}%`,color:C.dim}])}</div>
+      <div class="card"><div class="card-head"><div class="card-title">팔로우 vs 후원, 무엇이 먼저?</div><div class="card-meta">${cz.pairs.toLocaleString()}쌍 · 후원자 ${cz.sampleUsers?cz.sampleUsers.toLocaleString()+'명 전수':'표본'}</div></div><div class="chart-wrap"><canvas id="act-cause"></canvas></div>${legend([{label:`팔로우 먼저 ${cz.followFirstPct}%`,color:C.mint},{label:`같은 날 ${cz.sameDayPct}%`,color:C.amber},{label:`후원 먼저 ${cz.sponsorFirstPct}%`,color:C.blue},{label:`팔로우 안 함 ${cz.noFollowPct}%`,color:C.dim}])}</div>
       <div class="card" style="display:flex;flex-direction:column;justify-content:center;gap:8px">
         <div style="font-size:48px;font-weight:800;color:var(--mint);line-height:1">${cz.followFirstPct}%</div>
-        <div style="font-size:13.5px;color:var(--text-mid);line-height:1.75">후원한 그리퍼를 <b>먼저 팔로우</b>한 뒤 후원했습니다. '후원 먼저'는 <b>${cz.sponsorFirstPct}%</b>에 불과.<br>→ <b style="color:var(--mint)">팔로우(관계 형성)가 후원의 선행 조건</b>입니다. 단순 상관이 아니라 <b>'팔로우 → 후원' 방향의 인과</b>로 해석됩니다.</div>
+        <div style="font-size:13.5px;color:var(--text-mid);line-height:1.75">후원한 그리퍼를 <b>먼저 팔로우</b>한 뒤 후원한 비율입니다. 반대로 <b>'후원 먼저'는 ${cz.sponsorFirstPct}%</b>(${cz.sponsorFirst}건)에 불과 — 팔로우 시점이 기록된 쌍만 보면 <b>${cz.followFirstPctOfFollowed}%</b>가 팔로우 먼저입니다.<br>→ <b style="color:var(--mint)">팔로우(관계 형성)가 후원의 선행 조건</b>. 단순 상관이 아니라 <b>'팔로우 → 후원' 방향의 인과</b>로 확정됩니다.</div>
       </div>
     </div>` : ''}
     ${sectionHead('그룹별 활성도 비교','후원 · 광고적립(비후원) · 일반 유저 1인 평균','admin 개별 프로필 표본 집계. 후원 유저=최근 후원자, 광고적립=광고미션으로 젬을 모으지만 후원은 안 함, 일반=무작위 추출(장기 휴면 포함).')}
