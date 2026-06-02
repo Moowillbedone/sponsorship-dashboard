@@ -9,8 +9,5 @@
       ]
     }
   ],
-  "crons": [
-    { "path": "/api/collect", "schedule": "0 17 * * *" }
-  ],
   "regions": ["icn1"]
 }

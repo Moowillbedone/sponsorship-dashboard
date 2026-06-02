@@ -671,40 +671,29 @@ function showRefreshGuide(){
   const m=document.createElement('div'); m.id='rg-modal'; m.className='modal-backdrop';
   m.innerHTML=`<div class="modal" style="max-width:560px">
     <div class="modal-head"><b>데이터 갱신</b><button class="modal-x" id="rg-x">✕</button></div>
-    <div class="rg-block">
-      <div class="rg-h">⚡ 젬 · 정산 <span class="rg-tag">자동</span></div>
-      <p class="modal-desc">매일 새벽 자동으로 갱신됩니다. 지금 바로 최신화하려면 아래 버튼만 누르세요 — <b>로그인·북마클릿 불필요</b>.</p>
-      <button class="btn-primary" id="rg-collect">🔄 젬·정산 지금 갱신</button>
-      <div id="rg-status" class="rg-status"></div>
+    <p class="modal-desc"><b>1️⃣ 최초 1회</b> — 아래 초록 버튼을 브라우저 <b>즐겨찾기 바에 드래그</b>해 설치하세요.</p>
+    <div style="text-align:center;margin:6px 0 14px">
+      <a class="bookmarklet" href="javascript:(function(){var s=document.createElement('script');s.src='https://sponsorship-dashboard-tau.vercel.app/sync-all.js?t='+Date.now();document.body.appendChild(s);})();" onclick="return false;">🔄 데이터 동기화</a>
+      <div class="modal-dim" style="margin-top:7px">↑ 즐겨찾기 바로 <b>드래그</b> (클릭 아님)</div>
     </div>
-    <div class="rg-block">
-      <div class="rg-h">📺 광고 수익 <span class="rg-tag dim">북마클릿</span></div>
-      <p class="modal-desc">광고(애드팝콘)는 보안 토큰 구조상 서버 자동이 불가해, 로그인 후 북마클릿으로 갱신합니다. 일별 데이터라 가끔만 해도 됩니다.</p>
-      <div style="text-align:center;margin:4px 0 10px">
-        <a class="bookmarklet" href="javascript:(function(){var s=document.createElement('script');s.src='https://sponsorship-dashboard-tau.vercel.app/sync-all.js?t='+Date.now();document.body.appendChild(s);})();" onclick="return false;">🔄 데이터 동기화</a>
-        <div class="modal-dim" style="margin-top:7px">↑ 즐겨찾기 바로 <b>드래그</b>(최초 1회) → adpopcorn 로그인 후 클릭</div>
-      </div>
+    <p class="modal-desc"><b>2️⃣ 갱신할 때</b> — 아래 사이트에 <b>로그인</b>한 뒤 즐겨찾기의 <b>'🔄 데이터 동기화'</b>를 클릭하면 끝. 알아서 수집→전송→1~2분 후 자동 반영됩니다.</p>
+    <div class="src-list">
+      <div class="src-item"><div class="src-info"><b>💎 젬 + 정산</b> <span style="color:var(--text-dim);font-size:12px">적립·후원·결제·환전정산(10%)</span> <span class="src-site">admin2.grip.show</span></div></div>
+      <div class="src-item"><div class="src-info"><b>📺 광고 SDK</b> <span class="src-site">partners.adpopcorn.com</span></div></div>
+      <div class="src-item"><div class="src-info"><b>📺 광고 SSP</b> <span class="src-site">console.adpopcorn.com → 앱 리포트</span></div></div>
+      <div class="src-item"><div class="src-info"><b>📺 광고 쿠팡</b> <span class="src-site">console.adpopcorn.com → 파트너 리포트</span></div></div>
+    </div>
+    <p class="modal-dim" style="margin-top:10px">버튼이 막히면(CSP) 아래 <b>스크립트 복사</b> → 사이트에서 F12 → 콘솔에 붙여넣기 하세요.</p>
+    <div class="modal-actions" style="margin-top:12px">
       <button class="btn-mini" data-copy="sync-all.js">📋 스크립트 복사 (콘솔용)</button>
+      <button class="btn-ghost" id="rg-reload">새로고침</button>
     </div>
   </div>`;
   document.body.appendChild(m);
   const close=()=>m.remove();
   m.addEventListener('click',e=>{ if(e.target===m) close(); });
   document.getElementById('rg-x').onclick=close;
-  document.getElementById('rg-collect').onclick=async function(){
-    const btn=this, st=document.getElementById('rg-status');
-    btn.disabled=true; st.className='rg-status run'; st.textContent='수집 중… 최대 1분, 창을 닫지 마세요';
-    try{
-      const key=localStorage.getItem('syncKey')||'';
-      const r=await fetch('/api/collect',{method:'POST',headers:{'X-Sync-Key':key}});
-      const j=await r.json();
-      if(j.ok){ st.className='rg-status ok'; st.innerHTML='✓ 수집 완료 — 젬 '+fmt(j.gems)+'건 · 정산 '+j.settle+'건. 1~2분 후 자동 반영됩니다.'; setTimeout(()=>location.reload(),90000); }
-      else if(r.status===401 && /만료/.test(j.error||'')){ st.className='rg-status err'; st.innerHTML='⚠️ admin 토큰이 만료됐습니다 — 토큰 갱신이 필요해요.'; }
-      else if(r.status===401){ const k=prompt('동기화 키(SYNC_SECRET)를 입력하세요:'); if(k){ localStorage.setItem('syncKey',k); st.textContent='키 저장됨 — 버튼을 다시 눌러주세요.'; } else st.textContent='취소됨'; }
-      else { st.className='rg-status err'; st.textContent='실패: '+(j.error||('HTTP '+r.status)); }
-    }catch(e){ st.className='rg-status err'; st.textContent='오류: '+e.message; }
-    btn.disabled=false;
-  };
+  document.getElementById('rg-reload').onclick=()=>location.reload();
   m.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
     try{ const t=await (await fetch(b.dataset.copy+'?t='+Date.now())).text(); await navigator.clipboard.writeText(t); toast(b.dataset.copy+' 복사됨 — adpopcorn 콘솔에 붙여넣으세요'); }
     catch(e){ toast('복사 실패', true); }
