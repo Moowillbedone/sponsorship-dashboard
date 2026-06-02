@@ -151,10 +151,10 @@ export default async function handler(req, res) {
 
   try {
     const fD = '2025-01-01', tD = '2026-12-31', sS = '2025-01-01T00:00:00.000Z', sE = '2026-12-31T23:59:59.000Z';
-    const G = await coll(ADMIN_TOKEN, (s, l) => `${ADMIN}/gems?draw=1&start=${s}&length=${l}&search%5BfromDate%5D=${fD}&search%5BtoDate%5D=${tD}&search%5BdateTarget%5D=ISSUED_AT&search%5BqueryTarget%5D=GEM_HISTORY_SEQ&search%5Bquery%5D=`, 5000, 6);
+    const G = await coll(ADMIN_TOKEN, (s, l) => `${ADMIN}/gems?draw=1&start=${s}&length=${l}&search%5BfromDate%5D=${fD}&search%5BtoDate%5D=${tD}&search%5BdateTarget%5D=ISSUED_AT&search%5BqueryTarget%5D=GEM_HISTORY_SEQ&search%5Bquery%5D=`, 5000, 12);
     if (!G) return res.status(502).json({ error: 'gems 수집 실패' });
-    const Sp = await coll(ADMIN_TOKEN, (s, l) => `${ADMIN}/sponsorships/list?draw=1&start=${s}&length=${l}&search%5BsearchDateField%5D=sponsoredAt&search%5BsearchStartAt%5D=${sS}&search%5BsearchEndAt%5D=${sE}&search%5BsearchTarget%5D=userName&search%5BsearchQuery%5D=&search%5Bstates%5D%5B0%5D=ALL_CANCELED&search%5Bstates%5D%5B1%5D=PARTIAL_CANCELED&search%5Bstates%5D%5B2%5D=SPONSORED`, 1500, 8) || [];
-    const P = await coll(ADMIN_TOKEN, (s, l) => `${ADMIN}/gem-purchases/list?draw=1&start=${s}&length=${l}&search%5BsearchDateField%5D=orderedAt&search%5BsearchTarget%5D=transactionId&search%5BsearchStartAt%5D=${sS}&search%5BsearchEndAt%5D=${sE}&search%5BsearchQuery%5D=`, 3000, 4) || [];
+    const Sp = await coll(ADMIN_TOKEN, (s, l) => `${ADMIN}/sponsorships/list?draw=1&start=${s}&length=${l}&search%5BsearchDateField%5D=sponsoredAt&search%5BsearchStartAt%5D=${sS}&search%5BsearchEndAt%5D=${sE}&search%5BsearchTarget%5D=userName&search%5BsearchQuery%5D=&search%5Bstates%5D%5B0%5D=ALL_CANCELED&search%5Bstates%5D%5B1%5D=PARTIAL_CANCELED&search%5Bstates%5D%5B2%5D=SPONSORED`, 1500, 12) || [];
+    const P = await coll(ADMIN_TOKEN, (s, l) => `${ADMIN}/gem-purchases/list?draw=1&start=${s}&length=${l}&search%5BsearchDateField%5D=orderedAt&search%5BsearchTarget%5D=transactionId&search%5BsearchStartAt%5D=${sS}&search%5BsearchEndAt%5D=${sE}&search%5BsearchQuery%5D=`, 3000, 8) || [];
     const snap = aggSnapshot(G, Sp, P);
 
     const toM = dStr(new Date()).slice(0, 7);
