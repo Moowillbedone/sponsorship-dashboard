@@ -43,15 +43,14 @@ export default async function handler(req, res) {
   const gh = { Authorization: `Bearer ${TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'sponsorship-sync' };
 
   // 광고(sdk/ssp/coupang)는 애드팝콘이 과거 데이터를 보존만료로 안 주는 경우가 있어,
-  // '이번 달 이전 = 기존 보존, 이번 달 = 신규 교체' 월 단위 병합으로 과거를 누적 보존한다.
+  // '신규 우선' 병합: 신규에 있는 날짜는 최신값으로 교체하고, 신규에 없는 과거(만료분)만 기존 보존.
+  // (이전 '월 경계(cutoff)' 방식은 지난달 후반 데이터가 다음 달이 되면 영구 누락되는 버그가 있어 폐기)
   const ADS = { sdk: 1, ssp: 1, coupang: 1 };
   function mergeMonthly(existing, incoming) {
     if (!existing || !existing.daily || !incoming || !incoming.daily) return incoming;
-    const now = new Date(Date.now() + 9 * 3600 * 1000); // KST
-    const cutoff = now.getUTCFullYear() + '-' + String(now.getUTCMonth() + 1).padStart(2, '0') + '-01';
     const map = {};
-    existing.daily.forEach(function (d) { if (d.date < cutoff) map[d.date] = d; });   // 이번달 이전 = 기존 유지
-    incoming.daily.forEach(function (d) { if (d.date >= cutoff) map[d.date] = d; });  // 이번달 = 신규 교체
+    existing.daily.forEach(function (d) { map[d.date] = d; });   // 기존 전부 먼저 (만료된 과거 보존)
+    incoming.daily.forEach(function (d) { map[d.date] = d; });   // 신규로 덮어써 최신 반영 (신규 우선)
     const daily = Object.keys(map).sort().map(function (k) { return map[k]; });
     const sum = function (k) { return daily.reduce(function (a, x) { return a + (Number(x[k]) || 0); }, 0); };
     const kpi = Object.assign({}, incoming.kpi);
