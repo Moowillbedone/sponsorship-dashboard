@@ -784,20 +784,20 @@ function renderPnl(){
 
     ${sectionHead('젬은 이렇게 흐릅니다','구매 → 후원 → 현금화','유저가 젬을 사거나(결제) 광고로 모아 → 그리퍼에게 후원 → 그리퍼가 환전. 회사 현금은 ①구매 시 들어오고 ③환전 시 나갑니다. ②후원은 젬이 유저→그리퍼로 옮겨갈 뿐 현금이 움직이지 않습니다.')}<span class="unit-tag unit-gem">단위: 젬</span>
     <div class="pnl-flow">
-      <div class="pnl-fbox"><div class="fl">① 유저가 구매한 젬</div><div class="fv">${fmt(m.boughtGem)}<span class="u">젬</span></div><div class="fp">현금 결제로 획득 (${fmtKor(m.gross)}원)</div></div>
+      <div class="pnl-fbox"><div class="fl">① 유저가 구매한 젬${tip('유저가 현금으로 충전한 젬. 판매가 1,000원=700젬(1젬당 약 1.43원). 젬의 액면가 1원보다 비싼 프리미엄으로 판매됩니다 — 이 차액이 회사 마진의 원천.')}</div><div class="fv">${fmt(m.boughtGem)}<span class="u">젬</span></div><div class="fp">현금 결제로 획득 (${fmtKor(m.gross)}원)</div></div>
       <div class="pnl-arrow">→</div>
-      <div class="pnl-fbox"><div class="fl">② 판매자가 후원받은 젬</div><div class="fv">${fmt(m.donated)}<span class="u">젬</span></div><div class="fp">유저 → 판매자 후원 (현금 안 움직임)</div></div>
+      <div class="pnl-fbox"><div class="fl">② 판매자가 후원받은 젬${tip('유저가 보유 젬을 판매자에게 후원한 양. 젬이 유저→판매자로 옮겨갈 뿐 회사 현금은 움직이지 않습니다. 이 단계는 손익에 직접 들어가지 않습니다.')}</div><div class="fv">${fmt(m.donated)}<span class="u">젬</span></div><div class="fp">유저 → 판매자 후원 (현금 안 움직임)</div></div>
       <div class="pnl-arrow">→</div>
-      <div class="pnl-fbox"><div class="fl">③ 판매자가 현금화한 젬</div><div class="fv">${fmt(m.cashedGem)}<span class="u">젬</span></div><div class="fp">환전 = 후원의 ${(m.cashRate*100).toFixed(0)}% · 이때 비용 발생</div></div>
+      <div class="pnl-fbox"><div class="fl">③ 판매자가 현금화한 젬${tip('판매자가 환전 신청한 젬. 회사 현금은 이 시점에만 나갑니다 — 액면 1원에서 정산 수수료 10%를 떼고 1젬당 0.9원 지급.')}</div><div class="fv">${fmt(m.cashedGem)}<span class="u">젬</span></div><div class="fp">환전 = 후원의 ${(m.cashRate*100).toFixed(0)}% · 이때 비용 발생</div></div>
     </div>
 
-    ${sectionHead('손익계산서','실현 현금 기준 · 인앱 수수료 15%')}<span class="unit-tag unit-won">단위: 원</span>
+    ${sectionHead('손익계산서','실현 현금 기준 · 인앱 수수료 15%','회사 통장에 실제 오간 현금으로 계산합니다. 매출은 유저 판매가(1젬 약 1.43원, 1,000원=700젬) 기준, 비용은 판매자 환전 지급(액면 1원 − 수수료 10% = 0.9원/젬) 기준. 후원 단계는 현금이 안 움직여 계산에서 빠집니다. 젬의 액면가는 1원이지만 판매가는 그보다 비싼 프리미엄이라 그 차액이 마진이 됩니다.')}<span class="unit-tag unit-won">단위: 원</span>
     <div class="card">
       <div class="pnl-stmt">
-        ${row('젬 판매 총매출','유저가 결제한 금액','+'+fmt(m.gross),'pos')}
-        ${row('인앱결제 수수료','구글·애플 15%','−'+fmt(m.appFee),'neg')}
+        ${row('젬 판매 총매출'+tip('유저가 젬 충전에 실제로 낸 금액. 판매가는 1,000원=700젬, 즉 1젬당 약 1.43원입니다. 젬의 액면가(1원)보다 비싸게 파는 프리미엄이 회사 마진의 원천입니다.'),'유저가 결제한 금액','+'+fmt(m.gross),'pos')}
+        ${row('인앱결제 수수료'+tip('구글 플레이·애플 앱스토어 인앱결제 수수료. 연 매출 $1M 미만이라 15% 가정(구글 자동, 애플은 소상공인 프로그램 가입 전제). 애플 미가입 시 애플분은 30%.'),'구글·애플 15%','−'+fmt(m.appFee),'neg')}
         ${row('＝ 젬 판매 순수취','회사가 실제 받은 돈',fmt(m.netSales),'','sub')}
-        ${row('− 판매자 환전 지급',`현금화 ${fmt(m.cashedGem)}젬 × 0.9원`,'−'+fmt(m.payout),'neg')}
+        ${row('− 판매자 환전 지급'+tip('판매자가 후원 젬을 현금화한 지급액. 액면 1젬=1원에서 정산 수수료 10%를 판매자가 부담해 회사는 1젬당 0.9원 지급. 환전된 젬에만 발생하는 실제 현금 유출입니다.'),`현금화 ${fmt(m.cashedGem)}젬 × 0.9원`,'−'+fmt(m.payout),'neg')}
         ${row('＝ 젬 사업 순손익','','+'+fmt(m.gemPnl),'pos','total')}
         ${row('＋ 광고 부가수익',`SDK ${fmtKor(m.sdkRev)} · SSP ${fmtKor(m.sspKrw)} · 쿠팡 ${fmtKor(m.cpRev)}`,'+'+fmt(m.adsNet),'pos')}
         ${row('＝ 총 순손익','젬 사업 + 광고','+'+fmt(m.total),'pos','total grand')}
@@ -825,13 +825,30 @@ function renderPnl(){
           <li><b>무료 젬 순손실 반영됨</b> — 광고·수기 무료 젬의 환전분(추정 ${won(m.freeLoss)})은 매출 없이 지급되나 이미 위 비용에 포함</li>
         </ul></div>
       </div>
-    </div>`;
+    </div>
+
+    ${SETTLE?`${sectionHead('현금화(환전) 내역','신청일 기준'+(SETTLE.meta&&SETTLE.meta.collectedAt?' · 동기화 '+SETTLE.meta.collectedAt:''),'판매자가 환전(현금화) 신청한 내역을 신청일 기준으로 집계한 표입니다. 손익의 "환전 지급(비용)"이 여기서 발생합니다. 데이터를 새로 동기화한 뒤 이 표의 금액이 늘었다면 그만큼 그리퍼가 환전해 실현 순손익이 줄어든 것입니다(데이터 누락이 아님).')}<span class="unit-tag unit-won">단위: 원·젬</span>
+    ${settleListHTML()}`:''}`;
+}
+function settleListHTML(){
+  if(!SETTLE) return '';
+  if(SETTLE.daily && SETTLE.daily.length){
+    return periodHTML('pnlsettle','현금화 젬 · 실지급(원) · 수수료(원) · 건수');
+  }
+  const rows=(SETTLE.byMonth||[]).slice().reverse();
+  const head=`<div class="ptable-row ptable-head"><div>월</div><div>현금화 젬</div><div>실지급(원)</div><div>수수료(원)</div><div>건수</div></div>`;
+  const body=rows.map(r=>`<div class="ptable-row"><div class="ptable-date">${r.month}</div><div>${fmt(r.gem)}</div><div>${fmt(r.gem-r.fee)}</div><div>${fmt(r.fee)}</div><div>${fmt(r.count)}건</div></div>`).join('');
+  return `<div class="card"><div class="card-head"><div class="card-title">월별 현금화 내역</div><div class="card-meta">일·주별은 다음 데이터 동기화부터 표시됩니다</div></div><div class="ptable" style="grid-template-columns:minmax(84px,1.1fr) repeat(4,1fr)">${head}${body}</div></div>`;
 }
 function buildPnl(){
   const m=pnlModel(); const net15=Math.round(m.gross*0.85);
   const labels=[`현재 ${(m.cashRate*100).toFixed(0)}%`,'50%','70%','100%'];
   const vals=[m.gemPnl, net15-Math.round(m.donated*0.5*0.9), net15-Math.round(m.donated*0.7*0.9), net15-Math.round(m.donated*0.9)];
   barChart('pnl-sens', labels, vals, C.mint, {unit:'won',maxTicks:4,thick:44});
+  if(SETTLE && SETTLE.daily && SETTLE.daily.length){
+    setupPeriod('pnlsettle', SETTLE.daily, [{f:'gem',label:'현금화 젬',fmt:fmt},{f:'exchange',label:'실지급(원)',fmt:won},{f:'fee',label:'수수료(원)',fmt:won},{f:'count',label:'건수',fmt:fmt}]);
+    renderPeriodTable('pnlsettle'); bindPeriodEvents();
+  }
 }
 
 /* ---------- tabs ---------- */

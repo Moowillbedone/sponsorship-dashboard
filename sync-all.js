@@ -105,14 +105,15 @@
     var indiv = await ft(1, 0), biz = await ft(2, 1);
     var all = indiv.map(function (x) { x._b = false; return x; }).concat(biz.map(function (x) { x._b = true; return x; }));
     var sm = { 1: '대기중', 2: '진행중', 3: '완료', 4: '보류' };
-    var tFee = 0, tGem = 0, tEx = 0, byState = {}, byMonth = {}, grip = {};
-    for (var i = 0; i < all.length; i++) { var x = all[i], fee = x.advertisementFee || 0, gem = x.gemAmount || 0, ex = x.exchangeAmount || 0, st = sm[x.state] || String(x.state); tFee += fee; tGem += gem; tEx += ex; (byState[st] = byState[st] || { count: 0, fee: 0 }); byState[st].count++; byState[st].fee += fee; var dt = new Date(x.createdAt), mk = dt.getFullYear() + '-' + pad(dt.getMonth() + 1); (byMonth[mk] = byMonth[mk] || { fee: 0, gem: 0, count: 0 }); byMonth[mk].fee += fee; byMonth[mk].gem += gem; byMonth[mk].count++; var g = grip[x.userSeq] = grip[x.userSeq] || { name: x.userName, biz: x._b, gem: 0, fee: 0, exchange: 0, count: 0 }; g.gem += gem; g.fee += fee; g.exchange += ex; g.count++; }
+    var tFee = 0, tGem = 0, tEx = 0, byState = {}, byMonth = {}, byDay = {}, grip = {};
+    for (var i = 0; i < all.length; i++) { var x = all[i], fee = x.advertisementFee || 0, gem = x.gemAmount || 0, ex = x.exchangeAmount || 0, st = sm[x.state] || String(x.state); tFee += fee; tGem += gem; tEx += ex; (byState[st] = byState[st] || { count: 0, fee: 0 }); byState[st].count++; byState[st].fee += fee; var dt = new Date(x.createdAt), mk = dt.getFullYear() + '-' + pad(dt.getMonth() + 1); (byMonth[mk] = byMonth[mk] || { fee: 0, gem: 0, count: 0 }); byMonth[mk].fee += fee; byMonth[mk].gem += gem; byMonth[mk].count++; var dk = mk + '-' + pad(dt.getDate()); (byDay[dk] = byDay[dk] || { fee: 0, gem: 0, exchange: 0, count: 0 }); byDay[dk].fee += fee; byDay[dk].gem += gem; byDay[dk].exchange += ex; byDay[dk].count++; var g = grip[x.userSeq] = grip[x.userSeq] || { name: x.userName, biz: x._b, gem: 0, fee: 0, exchange: 0, count: 0 }; g.gem += gem; g.fee += fee; g.exchange += ex; g.count++; }
     var comp = byState['완료'] || { count: 0, fee: 0 }, pend = byState['대기중'] || { count: 0, fee: 0 }, hold = byState['보류'] || { count: 0, fee: 0 };
     return {
       meta: { collectedAt: dStr(new Date()), from: '2025-12', to: toM },
       kpi: { totalFee: tFee, totalGem: tGem, totalExchange: tEx, count: all.length, indivCount: indiv.length, bizCount: biz.length, uniqueGrippers: Object.keys(grip).length, completedFee: comp.fee, completedCount: comp.count, pendingFee: pend.fee, pendingCount: pend.count, holdFee: hold.fee, holdCount: hold.count },
       byState: Object.keys(byState).map(function (s) { return { state: s, count: byState[s].count, fee: byState[s].fee }; }).sort(function (a, b) { return b.fee - a.fee; }),
       byMonth: Object.keys(byMonth).sort().map(function (m) { return { month: m, fee: byMonth[m].fee, gem: byMonth[m].gem, count: byMonth[m].count }; }),
+      daily: Object.keys(byDay).sort().map(function (d) { return { date: d, fee: byDay[d].fee, gem: byDay[d].gem, exchange: byDay[d].exchange, count: byDay[d].count }; }),
       topGrippers: Object.keys(grip).map(function (k) { return grip[k]; }).sort(function (a, b) { return b.fee - a.fee; }).slice(0, 20)
     };
   }
