@@ -799,7 +799,7 @@ function renderPnl(){
         ${row('＝ 젬 판매 순수취','회사가 실제 받은 돈',fmt(m.netSales),'','sub')}
         ${row('− 판매자 환전 지급'+tip('판매자가 후원 젬을 현금화한 지급액. 액면 1젬=1원에서 정산 수수료 10%를 판매자가 부담해 회사는 1젬당 0.9원 지급. 환전된 젬에만 발생하는 실제 현금 유출입니다.'),`현금화 ${fmt(m.cashedGem)}젬 × 0.9원`,'−'+fmt(m.payout),'neg')}
         ${row('＝ 젬 사업 순손익','','+'+fmt(m.gemPnl),'pos','total')}
-        ${row('＋ 광고 부가수익',`SDK ${fmtKor(m.sdkRev)} · SSP ${fmtKor(m.sspKrw)} · 쿠팡 ${fmtKor(m.cpRev)}`,'+'+fmt(m.adsNet),'pos')}
+        ${row('＋ 광고 부가수익'+tip('광고(오퍼월·미디에이션·쿠팡)에서 회사가 받는 수익. 특히 유저가 광고를 보고 무료 젬을 받는 순간 회사는 광고비를 벌어들이므로, 광고로 획득한 무료 젬의 수익은 젬 판매 총매출이 아니라 여기(광고 부가수익)에 반영됩니다. 정리 — 인앱결제 젬은 젬 판매 총매출, 광고 무료 젬은 광고 부가수익. 두 젬 모두 나중에 환전되면 위 환전 지급(비용)에 함께 잡힙니다.'),`SDK ${fmtKor(m.sdkRev)} · SSP ${fmtKor(m.sspKrw)} · 쿠팡 ${fmtKor(m.cpRev)}`,'+'+fmt(m.adsNet),'pos')}
         ${row('＝ 총 순손익','젬 사업 + 광고','+'+fmt(m.total),'pos','total grand')}
       </div>
     </div>
