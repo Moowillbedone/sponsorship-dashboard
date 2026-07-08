@@ -235,15 +235,6 @@ function renderMeta(){
   const d=new Date(m.generatedAt);
   const p=n=>String(n).padStart(2,'0');
   $('#updatedAt').textContent = `갱신 ${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-  renderTotalRev();
-}
-function renderTotalRev(){
-  const el=$('#brandRev'); if(!el) return;
-  const adsNet = ADS ? ((ADS.sdk.kpi.totalRevenue||0) + Math.round((ADS.ssp.kpi.totalCost||0)*1400) + (ADS.coupang?ADS.coupang.kpi.totalClientCommission:0)) : 0;
-  const settleNet = SETTLE ? SETTLE.kpi.totalFee : 0;
-  const purchNet = (DATA.purch&&DATA.purch.kpi) ? Math.round(DATA.purch.kpi.totalPrice*0.1) : 0;
-  const total = adsNet + settleNet + purchNet;
-  el.innerHTML = `💰 총 순수익 <b>${won(total)}</b> <span class="bdim">· 광고 ${fmtKor(adsNet)}·정산 ${fmtKor(settleNet)}·결제 ${fmtKor(purchNet)}</span>`;
 }
 
 /* ===================== GEMS ===================== */
@@ -533,10 +524,8 @@ function renderActivity(){
   const sp=g.find(x=>x.key==='sponsor')||{}, ge=g.find(x=>x.key==='general')||{}, ad=g.find(x=>x.key==='adHeavy')||{};
   const fX=ge.following?Math.round(sp.following/ge.following):0;
   const oX=ge.order?Math.round(sp.order/ge.order):0;
-  const adsNet=ADS?((ADS.sdk.kpi.totalRevenue||0)+Math.round((ADS.ssp.kpi.totalCost||0)*1400)+(ADS.coupang?ADS.coupang.kpi.totalClientCommission:0)):0;
-  const settleNet=SETTLE?SETTLE.kpi.totalFee:0;
-  const purchNet=(DATA.purch&&DATA.purch.kpi)?Math.round(DATA.purch.kpi.totalPrice*0.1):0;
-  const totalNet=adsNet+settleNet+purchNet;
+  const M=pnlModel();
+  const totalNet=M.total;
   const sponGem=(DATA.spons&&DATA.spons.kpi)?DATA.spons.kpi.confirmedAmt:0;
   const uniqSpons=(DATA.spons&&DATA.spons.kpi)?DATA.spons.kpi.uniqueSponsors:0;
   const cz=ACT.causality;
@@ -562,7 +551,7 @@ function renderActivity(){
           <li>후원 매출 절대액이 아직 작아도, <b>후원 유저 1명의 활성도 ≒ 일반 유저 수십 명</b> — 후원자 수 확대가 곧 핵심 지표(리텐션·GMV) 상승으로 직결</li>
         </ul></div>
         <div class="adv-block adv-impact"><div class="adv-h">📊 비즈니스 임팩트 (전체 탭 취합)</div><ul>
-          <li>젬 경제 총 순수익 <b>${won(totalNet)}</b> = 광고 ${fmtKor(adsNet)} + 후원정산 ${fmtKor(settleNet)} + 결제 ${fmtKor(purchNet)} — 유저가 광고·결제로 모은 젬이 <b>후원으로 순환</b>하며 다중 수익 창출</li>
+          <li>젬 경제 <b>총 순손익 ${won(totalNet)}</b> = 젬 사업 ${fmtKor(M.gemPnl)} + 광고 ${fmtKor(M.adsNet)} — 실현 현금 기준(상세는 <b>손익계산서 탭</b>) · 유저가 모은 젬이 <b>후원으로 순환</b>하며 수익 창출</li>
           <li>후원받은 젬 <b>${fmtKor(sponGem)}젬</b>의 약 <b>94%가 인앱결제 기원</b> — '결제→후원→환전' 경로는 회사가 <b>결제 마진 + 환전 수수료를 두 번</b> 수취하는 고수익 구조</li>
           <li>후원 유저 <b>${fmt(uniqSpons)}명</b>이 전체 활성의 핵심 — 후원자 수가 곧 <b>플랫폼 건강도(리텐션·GMV)의 선행지표</b></li>
         </ul></div>
@@ -725,8 +714,128 @@ function buildAds(){
   renderPeriodTable('adsdk'); renderPeriodTable('adssp'); if(ADS.coupang) renderPeriodTable('adcp'); bindPeriodEvents();
 }
 
+/* ===================== 손익계산서 (P&L · 실현 현금 기준) ===================== */
+/* 인앱결제 수수료 가정: 구글·애플 모두 연 $1M 미만 구간이라 15% (구글 자동, 애플 소상공인 프로그램 전제) */
+const APP_FEE = 0.15;
+function pnlModel(){
+  const gross    = (DATA.purch&&DATA.purch.kpi) ? (DATA.purch.kpi.totalPrice||0) : 0;
+  const boughtGem= (DATA.purch&&DATA.purch.kpi) ? (DATA.purch.kpi.totalGem||0)   : 0;
+  const donated  = (DATA.spons&&DATA.spons.kpi) ? (DATA.spons.kpi.confirmedAmt||0): 0;
+  const cashedGem= SETTLE ? (SETTLE.kpi.totalGem||0)      : 0;
+  const payout   = SETTLE ? (SETTLE.kpi.totalExchange||0) : 0;   // 그리퍼 실지급(90%) = 실제 현금 유출
+  const settleFee= SETTLE ? (SETTLE.kpi.totalFee||0)      : 0;
+  const sdkRev = ADS ? (ADS.sdk.kpi.totalRevenue||0) : 0;
+  const sspKrw = ADS ? Math.round((ADS.ssp.kpi.totalCost||0)*1400) : 0;
+  const cpRev  = (ADS&&ADS.coupang) ? (ADS.coupang.kpi.totalClientCommission||0) : 0;
+  const adsNet = sdkRev + sspKrw + cpRev;
+  const netSales = Math.round(gross*(1-APP_FEE));
+  const appFee   = gross - netSales;
+  const gemPnl   = netSales - payout;
+  const total    = gemPnl + adsNet;
+  const cashRate = donated ? cashedGem/donated : 0;
+  const unredeemed = donated - cashedGem;
+  const ref={}; (DATA.gems.byReferrer||[]).forEach(r=>ref[r.referrer]=r.accrual||0);
+  const base=(ref.PURCHASE||0)+(ref.REWARD||0)+(ref.MANUAL_GEM||0);
+  const freeShare = base ? ((ref.REWARD||0)+(ref.MANUAL_GEM||0))/base : 0;
+  const freeLoss  = Math.round(cashedGem*freeShare*0.9);
+  return {gross,boughtGem,donated,cashedGem,payout,settleFee,sdkRev,sspKrw,cpRev,adsNet,netSales,appFee,gemPnl,total,cashRate,unredeemed,freeShare,freeLoss};
+}
+function pnlMatrixHTML(m){
+  const net15=Math.round(m.gross*0.85), net30=Math.round(m.gross*0.70);
+  const rows=[
+    {lab:`현재 (${(m.cashRate*100).toFixed(0)}%)`, payout:m.payout, cur:true},
+    {lab:'50%', payout:Math.round(m.donated*0.5*0.9)},
+    {lab:'70%', payout:Math.round(m.donated*0.7*0.9)},
+    {lab:'100% (전액 환전)', payout:Math.round(m.donated*0.9)}
+  ];
+  const body=rows.map(r=>`<tr class="${r.cur?'cur':''}"><th>${r.lab}</th><td class="appl">+${fmt(net15-r.payout)}</td><td>+${fmt(net30-r.payout)}</td></tr>`).join('');
+  return `<table class="pnl-matrix"><thead><tr><th>현금화율 ＼ 인앱 수수료</th><th class="appl">15% (적용)</th><th>30% (보수적 참고)</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function renderPnl(){
+  const v=$('#view-pnl'); if(!v) return;
+  const m=pnlModel();
+  const dr=DATA.meta&&DATA.meta.dateRange?DATA.meta.dateRange:{};
+  const row=(label,sm,amt,cls,rowcls)=>`<div class="pnl-row ${rowcls||''}"><div class="pl-label">${label}${sm?`<span class="sm">${sm}</span>`:''}</div><div class="pl-amt ${cls||''}">${amt}</div></div>`;
+  v.innerHTML=`
+    <div class="card hero-net" style="--hero:${C.mint}">
+      <div class="hero-net-top"><span class="hero-net-label">📊 총 순손익 <span class="dim" style="font-weight:500">(실현 현금 기준 · 전체 기간 누적)</span></span>${tip('회사 통장에 실제로 들어오고 나간 현금만으로 계산한 손익입니다. 젬 판매(유저 결제)에서 인앱 수수료 15%를 뺀 실수령액 − 그리퍼가 실제 환전한 지급액 + 광고 순수익. 후원받은 젬 자체는 현금이 아니므로 계산에 들어가지 않고, 그리퍼가 환전(현금화)할 때만 비용으로 잡힙니다. 인건비·서버·마케팅 등 공통비는 미포함.')}</div>
+      <div class="hero-net-value">${won(m.total)}</div>
+      <div class="hero-net-break"><span><b style="color:var(--mint)">젬 사업</b> ${won(m.gemPnl)}</span><span><b style="color:var(--violet)">광고 부가수익</b> ${won(m.adsNet)}</span></div>
+    </div>
+    <div class="pnl-badges">
+      <span class="pnl-badge">기간 <b>${dr.from||'—'} ~ ${dr.to||'—'}</b></span>
+      <span class="pnl-badge">기준 <b>실현 현금(cash basis)</b></span>
+      <span class="pnl-badge">인앱 수수료 <b>15% 적용</b></span>
+      <span class="pnl-badge">현금화율 <b>${(m.cashRate*100).toFixed(1)}%</b></span>
+    </div>
+
+    <div class="card pnl-key" style="margin-top:14px">
+      <div class="card-head"><div class="card-title">💡 왜 흑자인가 — 핵심 원리</div><div class="card-meta">후원 젬은 "환전될 때만" 비용</div></div>
+      <p>그리퍼(판매자)가 후원받은 젬은 <b>어드민에서 환전(현금화)할 때만 회사 비용</b>이 됩니다. 환전하지 않은 젬은 부채로 남지만, 상당수는 <b>환전 문턱(1만 젬)·사업자 요건</b> 때문에 끝내 환전되지 않아 <span class="hl">결국 회사 몫</span>이 됩니다.<br>
+      현재 후원받은 <b>${fmt(m.donated)}젬</b> 중 실제 환전된 건 <b>${fmt(m.cashedGem)}젬(${(m.cashRate*100).toFixed(0)}%)</b>뿐 → 실제 나간 현금은 <b>${won(m.payout)}</b>. 나머지 <span class="hl">${fmt(m.unredeemed)}젬(약 ${(m.unredeemed/(m.donated||1)*100).toFixed(0)}%)은 아직 비용이 아닙니다.</span></p>
+    </div>
+
+    <div class="kpi-grid" style="margin-top:14px">
+      ${kpi('젬 판매 순수취', fmt(m.netSales), '원', `총매출 ${fmtKor(m.gross)} − 수수료 15%`, C.mint)}
+      ${kpi('환전 지급 (비용)', fmt(m.payout), '원', `실제 나간 현금 · 환전 ${fmt(m.cashedGem)}젬`, C.red)}
+      ${kpi('현금화율', (m.cashRate*100).toFixed(1), '%', `후원 ${fmtKor(m.donated)}젬 중 환전 비율`, C.amber)}
+      ${kpi('미현금화 (잠재부채)', fmtKor(m.unredeemed), '젬', `≈ ${fmtKor(m.unredeemed)}원 액면 · 아직 비용 아님`, C.violet)}
+    </div>
+
+    ${sectionHead('젬은 이렇게 흐릅니다','구매 → 후원 → 현금화','유저가 젬을 사거나(결제) 광고로 모아 → 그리퍼에게 후원 → 그리퍼가 환전. 회사 현금은 ①구매 시 들어오고 ③환전 시 나갑니다. ②후원은 젬이 유저→그리퍼로 옮겨갈 뿐 현금이 움직이지 않습니다.')}<span class="unit-tag unit-gem">단위: 젬</span>
+    <div class="pnl-flow">
+      <div class="pnl-fbox"><div class="fl">① 유저가 구매한 젬</div><div class="fv">${fmt(m.boughtGem)}<span class="u">젬</span></div><div class="fp">현금 결제로 획득 (${fmtKor(m.gross)}원)</div></div>
+      <div class="pnl-arrow">→</div>
+      <div class="pnl-fbox"><div class="fl">② 판매자가 후원받은 젬</div><div class="fv">${fmt(m.donated)}<span class="u">젬</span></div><div class="fp">유저 → 판매자 후원 (현금 안 움직임)</div></div>
+      <div class="pnl-arrow">→</div>
+      <div class="pnl-fbox"><div class="fl">③ 판매자가 현금화한 젬</div><div class="fv">${fmt(m.cashedGem)}<span class="u">젬</span></div><div class="fp">환전 = 후원의 ${(m.cashRate*100).toFixed(0)}% · 이때 비용 발생</div></div>
+    </div>
+
+    ${sectionHead('손익계산서','실현 현금 기준 · 인앱 수수료 15%')}<span class="unit-tag unit-won">단위: 원</span>
+    <div class="card">
+      <div class="pnl-stmt">
+        ${row('젬 판매 총매출','유저가 결제한 금액','+'+fmt(m.gross),'pos')}
+        ${row('인앱결제 수수료','구글·애플 15%','−'+fmt(m.appFee),'neg')}
+        ${row('＝ 젬 판매 순수취','회사가 실제 받은 돈',fmt(m.netSales),'','sub')}
+        ${row('− 판매자 환전 지급',`현금화 ${fmt(m.cashedGem)}젬 × 0.9원`,'−'+fmt(m.payout),'neg')}
+        ${row('＝ 젬 사업 순손익','','+'+fmt(m.gemPnl),'pos','total')}
+        ${row('＋ 광고 부가수익',`SDK ${fmtKor(m.sdkRev)} · SSP ${fmtKor(m.sspKrw)} · 쿠팡 ${fmtKor(m.cpRev)}`,'+'+fmt(m.adsNet),'pos')}
+        ${row('＝ 총 순손익','젬 사업 + 광고','+'+fmt(m.total),'pos','total grand')}
+      </div>
+    </div>
+
+    ${sectionHead('손익 민감도 — 현금화율이 오르면?','모든 시나리오 흑자 · 광고 제외 젬 사업 기준','현금화율(그리퍼가 환전하는 비율)과 인앱 수수료율에 따른 젬 사업 순손익. 지금은 현금화율이 낮아 흑자폭이 크고, 100%까지 올라도 흑자입니다.')}<span class="unit-tag unit-won">단위: 원</span>
+    <div class="grid c2">
+      <div class="card"><div class="card-head"><div class="card-title">현금화율 × 인앱 수수료</div><div class="card-meta">젬 사업 순손익</div></div>${pnlMatrixHTML(m)}</div>
+      <div class="card"><div class="card-head"><div class="card-title">현금화율별 순손익 (수수료 15%)</div><div class="card-meta">단위 원</div></div><div class="chart-wrap"><canvas id="pnl-sens"></canvas></div></div>
+    </div>
+
+    <div class="card advisor" style="margin-top:24px">
+      <div class="card-head"><div class="card-title">🧷 가정 및 주의사항</div><div class="card-meta">해석 시 유의</div></div>
+      <div class="adv-grid">
+        <div class="adv-block adv-todo"><div class="adv-h">🎯 흑자인 이유</div><ul>
+          <li><b>낮은 현금화율(${(m.cashRate*100).toFixed(0)}%)</b> — 후원 젬의 ${(100-m.cashRate*100).toFixed(0)}%가 미환전 → 지급 의무 미발생</li>
+          <li><b>젬당 마진 +0.31원</b> — 1젬 1.43원 판매, 수수료 15% 떼도 순수취 1.21원 > 환전 지급 0.9원</li>
+          <li><b>무료 젬 비중 ${(m.freeShare*100).toFixed(1)}%뿐</b> — 유통 젬의 대부분이 유저가 현금으로 산 젬</li>
+        </ul></div>
+        <div class="adv-block adv-bad"><div class="adv-h">⚠️ 주의·리스크</div><ul>
+          <li><b>공통비 미포함</b> — 인건비·서버·마케팅 등 반영 시 최종 순이익은 이보다 낮음</li>
+          <li><b>인앱 수수료 15% 가정</b> — 애플 소상공인 프로그램 미가입 시 실효 약 18%로 흑자폭 소폭 축소</li>
+          <li><b>잠재 부채</b> — 미환전 ${fmtKor(m.unredeemed)}젬은 향후 환전 가능성 있는 부채 (전액 환전에도 흑자 유지)</li>
+          <li><b>무료 젬 순손실 반영됨</b> — 광고·수기 무료 젬의 환전분(추정 ${won(m.freeLoss)})은 매출 없이 지급되나 이미 위 비용에 포함</li>
+        </ul></div>
+      </div>
+    </div>`;
+}
+function buildPnl(){
+  const m=pnlModel(); const net15=Math.round(m.gross*0.85);
+  const labels=[`현재 ${(m.cashRate*100).toFixed(0)}%`,'50%','70%','100%'];
+  const vals=[m.gemPnl, net15-Math.round(m.donated*0.5*0.9), net15-Math.round(m.donated*0.7*0.9), net15-Math.round(m.donated*0.9)];
+  barChart('pnl-sens', labels, vals, C.mint, {unit:'won',maxTicks:4,thick:44});
+}
+
 /* ---------- tabs ---------- */
-const VIEWS = { ads:buildAds, gems:buildGems, spons:buildSpons, purch:buildPurch, activity:buildActivity };
+const VIEWS = { pnl:buildPnl, ads:buildAds, gems:buildGems, spons:buildSpons, purch:buildPurch, activity:buildActivity };
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
@@ -797,8 +906,8 @@ async function init(){
     ADS = { meta:{}, sdk: await sdkr.json(), ssp: await sspr.json(), coupang: (cpr && cpr.ok) ? await cpr.json() : null };
     SETTLE = (setr && setr.ok) ? await setr.json() : null;
     ACT = (actr && actr.ok) ? await actr.json() : null;
-    renderMeta(); renderAds(); renderGems(); renderSpons(); renderPurch(); renderActivity();
-    buildAds(); built.ads=true;
+    renderMeta(); renderPnl(); renderAds(); renderGems(); renderSpons(); renderPurch(); renderActivity();
+    buildPnl(); built.pnl=true;
     $('#loading').style.display='none';
     setupTabs(); setupRefresh();
   }catch(e){

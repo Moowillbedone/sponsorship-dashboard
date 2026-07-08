@@ -19,11 +19,12 @@
       <div class="brand-text">
         <h1>후원하기 대시보드</h1>
         <p>Gem Analytics · 유저 · 그리퍼 · 결제</p>
-        <p class="brand-rev" id="brandRev"></p>
       </div>
     </div>
     <nav class="tabs" id="tabs">
-      <button class="tab active" data-view="ads">📺 광고 수익</button>
+      <button class="tab active" data-view="pnl">📊 손익계산서</button>
+      <span class="tab-sep"></span>
+      <button class="tab" data-view="ads">📺 광고 수익</button>
       <span class="tab-sep"></span>
       <button class="tab" data-view="gems">유저 젬</button>
       <button class="tab" data-view="spons">그리퍼 젬</button>
@@ -44,7 +45,8 @@
 
   <main id="main">
     <div class="loading" id="loading">데이터 불러오는 중…</div>
-    <section class="view" id="view-ads"></section>
+    <section class="view" id="view-pnl"></section>
+    <section class="view hidden" id="view-ads"></section>
     <section class="view hidden" id="view-gems"></section>
     <section class="view hidden" id="view-spons"></section>
     <section class="view hidden" id="view-purch"></section>

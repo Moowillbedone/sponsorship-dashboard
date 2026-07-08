@@ -58,9 +58,6 @@ body{
 }
 .brand-text h1{font-size:16px;font-weight:700;letter-spacing:-.02em}
 .brand-text p{font-size:12px;color:var(--text-dim);font-weight:500;margin-top:1px}
-.brand-text .brand-rev{font-size:12px;font-weight:600;color:var(--text-mid);margin-top:4px;white-space:nowrap}
-.brand-text .brand-rev b{color:var(--mint);font-weight:700}
-.brand-text .brand-rev .bdim{color:var(--text-dim);font-weight:500}
 
 .tabs{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--border);padding:4px;border-radius:99px;margin:0 auto}
 .tab{
@@ -290,3 +287,50 @@ body{
   font-size:11.5px;color:var(--text-dim);border-top:1px solid var(--border);
 }
 .footer-dim{opacity:.7}
+
+/* ---------- 손익계산서 (P&L) ---------- */
+.pnl-badges{display:flex;flex-wrap:wrap;gap:8px;margin:4px 2px 0}
+.pnl-badge{font-size:11.5px;font-weight:600;color:var(--text-mid);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:99px;padding:5px 12px}
+.pnl-badge b{color:var(--text);font-weight:700}
+.unit-tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:5px;padding:2px 8px;vertical-align:middle;transform:translateY(-1px)}
+.unit-gem{background:rgba(90,169,230,.14);color:var(--blue)}
+.unit-won{background:rgba(245,196,81,.16);color:var(--amber)}
+
+.pnl-key{background:linear-gradient(135deg,rgba(61,220,151,.08),rgba(167,139,250,.045));border-color:var(--mint-soft)}
+.pnl-key p{font-size:13.5px;line-height:1.9;color:var(--text-mid)}
+.pnl-key b{color:var(--text);font-weight:700}
+.pnl-key .hl{color:var(--mint);font-weight:700}
+
+.pnl-flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+.pnl-fbox{flex:1;min-width:160px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 18px}
+.pnl-fbox .fl{font-size:12px;color:var(--text-dim);font-weight:600}
+.pnl-fbox .fv{font-size:23px;font-weight:800;letter-spacing:-.02em;margin-top:8px;font-variant-numeric:tabular-nums;line-height:1.1}
+.pnl-fbox .fv .u{font-size:12px;font-weight:600;color:var(--text-mid);margin-left:2px}
+.pnl-fbox .fp{font-size:11.5px;color:var(--text-dim);margin-top:6px;line-height:1.5}
+.pnl-arrow{display:flex;align-items:center;color:var(--text-dim);font-size:22px;font-weight:800}
+
+.pnl-stmt{display:flex;flex-direction:column}
+.pnl-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:13px 6px;border-bottom:1px solid rgba(255,255,255,.05)}
+.pnl-row .pl-label{font-size:13.5px;color:var(--text-mid);font-weight:600}
+.pnl-row .pl-label .sm{font-size:11.5px;color:var(--text-dim);font-weight:500;margin-left:7px}
+.pnl-row .pl-amt{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+.pnl-row .pl-amt.pos{color:var(--mint)}
+.pnl-row .pl-amt.neg{color:var(--red)}
+.pnl-row.sub{background:rgba(255,255,255,.025);border-radius:9px;border-bottom:0;margin:2px 0}
+.pnl-row.sub .pl-label{color:var(--text);font-weight:700}
+.pnl-row.total{border-top:2px solid var(--border-strong);border-bottom:0;margin-top:4px;padding-top:15px}
+.pnl-row.total .pl-label{font-size:15px;font-weight:800;color:var(--text)}
+.pnl-row.total .pl-amt{font-size:22px;font-weight:800;color:var(--mint)}
+.pnl-row.grand{margin-top:8px}
+.pnl-row.grand .pl-amt{font-size:27px}
+
+.pnl-matrix{width:100%;border-collapse:collapse;font-size:13.5px}
+.pnl-matrix th,.pnl-matrix td{padding:11px 12px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pnl-matrix th:first-child,.pnl-matrix td:first-child{text-align:left}
+.pnl-matrix thead th{font-size:11.5px;color:var(--text-dim);font-weight:700;border-bottom:2px solid var(--border-strong)}
+.pnl-matrix thead th.appl{color:var(--mint)}
+.pnl-matrix tbody th{font-weight:600;color:var(--text-mid);border-bottom:1px solid rgba(255,255,255,.05)}
+.pnl-matrix tbody td{border-bottom:1px solid rgba(255,255,255,.05);font-weight:700;color:var(--text-dim)}
+.pnl-matrix tbody td.appl{color:var(--mint)}
+.pnl-matrix tr.cur th,.pnl-matrix tr.cur td{background:rgba(61,220,151,.06)}
+@media (max-width:560px){.pnl-arrow{transform:rotate(90deg);width:100%;justify-content:center;height:14px}}
