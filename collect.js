@@ -119,7 +119,7 @@
       sState[st] = (sState[st] || 0) + 1; spAmt += r.sponsoredGemAmount || 0; confAmt += r.confirmedGemAmount || 0; canAmt += r.canceledGemAmount || 0;
       const dd = sDaily[d] = sDaily[d] || { count: 0, amount: 0, canceled: 0 }; dd.count++; dd.amount += r.sponsoredGemAmount || 0; if (st !== 'SPONSORED') dd.canceled++;
       const g = r.targetUser || {}; const gp = gripper[g.userSeq] = gripper[g.userSeq] || { name: g.userName, amount: 0, count: 0 }; gp.amount += r.confirmedGemAmount || 0; gp.count++;
-      const wk = mondayStr(r.sponsoredAt), cga = r.confirmedGemAmount || 0; const wa = wkAgg[wk] = wkAgg[wk] || { total: 0, count: 0, grip: {} }; wa.total += cga; wa.count++; const wg = wa.grip[g.userSeq] = wa.grip[g.userSeq] || { userSeq: +g.userSeq, name: g.userName, amount: 0, count: 0 }; wg.amount += cga; wg.count++;
+      const wk = mondayStr(r.sponsoredAt), cga = r.sponsoredGemAmount || 0; const wa = wkAgg[wk] = wkAgg[wk] || { total: 0, count: 0, grip: {} }; wa.total += cga; wa.count++; const wg = wa.grip[g.userSeq] = wa.grip[g.userSeq] || { userSeq: +g.userSeq, name: g.userName, amount: 0, count: 0 }; wg.amount += cga; wg.count++;
       const u = r.user || {}; const sp = sponsor[u.userSeq] = sponsor[u.userSeq] || { name: u.userName, amount: 0, count: 0 }; sp.amount += r.confirmedGemAmount || 0; sp.count++;
       const a = r.sponsoredGemAmount || 0; for (const b of bks) { if (a >= b[0] && a <= b[1]) { amtDist[b[2]] = (amtDist[b[2]] || 0) + 1; break; } }
     }

@@ -405,7 +405,7 @@ function renderWkRankTable(){
   const wk=DATA.spons.weekly; const el=document.getElementById('wkRank'); if(!wk||!el) return;
   const i=Math.max(0,Math.min(WK_STATE.sel, wk.length-1)); const w=wk[i];
   el.innerHTML = `<div class="wk-sum">이 주 총 후원 <b>${fmt(w.total)}</b>젬 · <b>${fmt(w.count)}</b>건 · 상위 그리퍼 ${fmt(w.grippers.length)}명</div>`
-    + rankList(w.grippers.slice(0,20), r=>fmtKor(r.amount)+' 젬', C.mint);
+    + rankList(w.grippers.slice(0,20), r=>fmt(r.amount)+' 젬', C.mint);
 }
 function buildWeekly(){
   const wt=weeklyTotals(); const cv=document.getElementById('wk-trend'); if(!cv||!wt.length) return; const ctx=cv.getContext('2d');
