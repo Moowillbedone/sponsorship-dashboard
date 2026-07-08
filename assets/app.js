@@ -346,7 +346,8 @@ function renderSpons(){
     ${sectionHead('기간별 후원 추이','일 / 주 / 월 단위')}
     ${periodHTML('spons','후원젬 · 후원건수 · 취소건')}
     ${renderSponsorSource()}
-    ${SETTLE?renderSettlement():''}`;
+    ${SETTLE?renderSettlement():''}
+    ${renderWeeklyRank()}`;
   $('#view-spons').innerHTML = html;
 }
 function buildSpons(){
@@ -365,6 +366,62 @@ function buildSpons(){
   setupPeriod('spons', s.daily, [{f:'amount',label:'후원젬',fmt:fmt},{f:'count',label:'후원건수',fmt:fmt},{f:'canceled',label:'취소건',fmt:fmt}]);
   renderPeriodTable('spons'); bindPeriodEvents();
   if(SETTLE) buildSettlement();
+  buildWeekly();
+}
+
+/* ---------- 주간 후원 랭킹 (주 단위 리셋: 월 00시 ~ 일 24시, KST) ---------- */
+let WK_STATE = { sel: 0 };
+function weekLabel(mon){
+  const d=new Date(mon+'T00:00:00'); if(isNaN(d)) return mon;
+  const e=new Date(d); e.setDate(e.getDate()+6);
+  const f=x=>String(x.getMonth()+1).padStart(2,'0')+'/'+String(x.getDate()).padStart(2,'0');
+  return `${f(d)} ~ ${f(e)}`;
+}
+function weeklyTotals(){
+  const s=DATA.spons;
+  if(s.weekly&&s.weekly.length) return s.weekly.map(w=>({week:w.week,total:w.total,count:w.count}));
+  return aggPeriod(s.daily,'week',['amount','count']).map(w=>({week:w.key,total:w.amount,count:w.count}));
+}
+function renderWeeklyRank(){
+  const s=DATA.spons, wk=(s.weekly&&s.weekly.length)?s.weekly:null;
+  const rankBlock = wk ? `
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><div class="card-title">주차별 그리퍼 랭킹</div>
+        <select id="wkSel" class="wk-sel">${wk.map((w,i)=>`<option value="${i}"${i===wk.length-1?' selected':''}>${weekLabel(w.week)} 주</option>`).reverse().join('')}</select>
+      </div>
+      <div id="wkRank"></div>
+    </div>`
+    : `<div class="card" style="margin-top:14px"><div style="padding:16px 4px;color:var(--text-dim);font-size:13px">주차별 <b style="color:var(--text-mid)">그리퍼 랭킹</b>은 <b style="color:var(--mint)">다음 데이터 동기화부터</b> 표시됩니다. (수집기가 방금 업데이트되어, 한 번 더 동기화하면 주별 순위가 채워집니다.)</div></div>`;
+  return `
+    ${sectionHead('📅 주간 후원 랭킹 — 주 단위 리셋','월요일 00시 ~ 일요일 24시(KST) · 그리퍼가 주별로 받은 후원','후원하기는 주 단위(월~일)로 리셋됩니다. 각 주에 그리퍼가 받은 확정 후원 젬을 집계해 순위를 매깁니다. admin2 후원 내역을 후원일시(KST) 기준으로 주별 그룹화하며, 어드민 주간 랭킹 화면과 동일한 주 경계를 사용합니다.')}
+    <div class="card">
+      <div class="card-head"><div class="card-title">주간 후원 젬 추이</div><div class="card-meta">주별 총 후원 젬 / 건수</div></div>
+      <div class="chart-wrap tall"><canvas id="wk-trend"></canvas></div>
+      ${legend([{label:'후원 젬',color:C.mint},{label:'후원 건수',color:C.violet}])}
+    </div>
+    ${rankBlock}`;
+}
+function renderWkRankTable(){
+  const wk=DATA.spons.weekly; const el=document.getElementById('wkRank'); if(!wk||!el) return;
+  const i=Math.max(0,Math.min(WK_STATE.sel, wk.length-1)); const w=wk[i];
+  el.innerHTML = `<div class="wk-sum">이 주 총 후원 <b>${fmt(w.total)}</b>젬 · <b>${fmt(w.count)}</b>건 · 상위 그리퍼 ${fmt(w.grippers.length)}명</div>`
+    + rankList(w.grippers.slice(0,20), r=>fmtKor(r.amount)+' 젬', C.mint);
+}
+function buildWeekly(){
+  const wt=weeklyTotals(); const cv=document.getElementById('wk-trend'); if(!cv||!wt.length) return; const ctx=cv.getContext('2d');
+  new Chart(ctx,{data:{labels:wt.map(w=>weekLabel(w.week)),datasets:[
+    {type:'bar',label:'후원 젬',data:wt.map(w=>w.total),backgroundColor:C.mint,borderRadius:5,maxBarThickness:34,yAxisID:'y'},
+    {type:'line',label:'후원 건수',data:wt.map(w=>w.count),borderColor:C.violet,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'}
+  ]},options:{interaction:{mode:'index',intersect:false},scales:{
+    x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},
+    y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmt(v)},border:{display:false}},
+    y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)+'건'},border:{display:false}}
+  },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}${c.dataset.label==='후원 건수'?'건':'젬'}`}}}}});
+  const sel=document.getElementById('wkSel');
+  if(sel && DATA.spons.weekly){ WK_STATE.sel=DATA.spons.weekly.length-1; sel.value=String(WK_STATE.sel);
+    sel.addEventListener('change',()=>{ WK_STATE.sel=+sel.value; renderWkRankTable(); });
+    renderWkRankTable();
+  }
 }
 
 /* ---------- 그리퍼 젬 정산 (현금 환전 10% 순수익) ---------- */

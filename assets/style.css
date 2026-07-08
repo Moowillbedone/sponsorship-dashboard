@@ -334,3 +334,10 @@ body{
 .pnl-matrix tbody td.appl{color:var(--mint)}
 .pnl-matrix tr.cur th,.pnl-matrix tr.cur td{background:rgba(61,220,151,.06)}
 @media (max-width:560px){.pnl-arrow{transform:rotate(90deg);width:100%;justify-content:center;height:14px}}
+
+/* ---------- 주간 후원 랭킹 ---------- */
+.wk-sel{font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text);background:rgba(255,255,255,.05);border:1px solid var(--border-strong);border-radius:9px;padding:6px 12px;cursor:pointer;outline:none;max-width:200px}
+.wk-sel:hover{border-color:var(--mint)}
+.wk-sel option{background:#0c1a14;color:var(--text)}
+.wk-sum{font-size:12.5px;color:var(--text-mid);font-weight:600;padding:4px 6px 12px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.wk-sum b{color:var(--mint);font-weight:700;font-variant-numeric:tabular-nums}

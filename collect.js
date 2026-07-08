@@ -111,13 +111,15 @@
       topAccrual: topN(uAcc, 50, 'amount'), topUse: topN(uUse, 50, 'amount') };
 
     // SPONS
-    const sState = {}, sDaily = {}, gripper = {}, sponsor = {}, amtDist = {}; let spAmt = 0, confAmt = 0, canAmt = 0;
+    const sState = {}, sDaily = {}, gripper = {}, sponsor = {}, amtDist = {}, wkAgg = {}; let spAmt = 0, confAmt = 0, canAmt = 0;
+    const mondayStr = ms => { const x = new Date(ms); const dow = x.getDay(); x.setDate(x.getDate() + (dow === 0 ? -6 : 1 - dow)); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
     const bks = [[1, 9, '1-9'], [10, 49, '10-49'], [50, 99, '50-99'], [100, 499, '100-499'], [500, 999, '500-999'], [1000, 4999, '1K-5K'], [5000, 1e15, '5K+']];
     for (let i = 0; i < S.length; i++) {
       const r = S[i], st = r.state, d = dstr(r.sponsoredAt);
       sState[st] = (sState[st] || 0) + 1; spAmt += r.sponsoredGemAmount || 0; confAmt += r.confirmedGemAmount || 0; canAmt += r.canceledGemAmount || 0;
       const dd = sDaily[d] = sDaily[d] || { count: 0, amount: 0, canceled: 0 }; dd.count++; dd.amount += r.sponsoredGemAmount || 0; if (st !== 'SPONSORED') dd.canceled++;
       const g = r.targetUser || {}; const gp = gripper[g.userSeq] = gripper[g.userSeq] || { name: g.userName, amount: 0, count: 0 }; gp.amount += r.confirmedGemAmount || 0; gp.count++;
+      const wk = mondayStr(r.sponsoredAt), cga = r.confirmedGemAmount || 0; const wa = wkAgg[wk] = wkAgg[wk] || { total: 0, count: 0, grip: {} }; wa.total += cga; wa.count++; const wg = wa.grip[g.userSeq] = wa.grip[g.userSeq] || { userSeq: +g.userSeq, name: g.userName, amount: 0, count: 0 }; wg.amount += cga; wg.count++;
       const u = r.user || {}; const sp = sponsor[u.userSeq] = sponsor[u.userSeq] || { name: u.userName, amount: 0, count: 0 }; sp.amount += r.confirmedGemAmount || 0; sp.count++;
       const a = r.sponsoredGemAmount || 0; for (const b of bks) { if (a >= b[0] && a <= b[1]) { amtDist[b[2]] = (amtDist[b[2]] || 0) + 1; break; } }
     }
@@ -126,7 +128,8 @@
       byState: Object.entries(sState).map(([k, v]) => ({ state: k, count: v })),
       daily: Object.entries(sDaily).map(([date, v]) => ({ date, ...v })).sort((a, b) => a.date < b.date ? -1 : 1),
       amountDist: bks.map(b => ({ bucket: b[2], count: amtDist[b[2]] || 0 })),
-      topGrippers: topN(gripper, 50, 'amount'), topSponsors: topN(sponsor, 50, 'amount') };
+      topGrippers: topN(gripper, 50, 'amount'), topSponsors: topN(sponsor, 50, 'amount'),
+      weekly: Object.keys(wkAgg).sort().map(w => ({ week: w, total: wkAgg[w].total, count: wkAgg[w].count, grippers: Object.values(wkAgg[w].grip).sort((x, y) => y.amount - x.amount).slice(0, 30) })) };
 
     // PURCH
     const pStore = {}, pState = {}, pBundle = {}, pDaily = {}, buyer = {}; let totPrice = 0, totGem = 0;
