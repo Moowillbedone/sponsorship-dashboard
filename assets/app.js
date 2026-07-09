@@ -614,12 +614,15 @@ function renderActivity(){
         </ul></div>
       </div>
     </div>
-    ${cz?`${sectionHead('🔗 인과 검증 — 팔로우가 먼저, 후원은 그 다음','후원한 그리퍼를 언제 팔로우했나 (선후 분석)','후원 유저 '+(cz.sampleUsers?cz.sampleUsers.toLocaleString()+'명 전수의 ':'')+'후원-그리퍼 쌍 '+cz.pairs.toLocaleString()+'건에서 그리퍼 팔로우 시점과 첫 후원 시점의 선후를 비교했습니다. 표본이 아닌 전수 분석으로, 단순 상관(후원 유저가 팔로우 많음)을 넘어 ‘무엇이 먼저인가’(방향성)를 검증.')}
+    ${cz?`${sectionHead('🔗 인과 검증 — 후원이 팬을 만드나? (런칭일 기준 재분석)','팔로우 시점 vs 첫 후원 시점 · 런칭 전 팔로우(기존 팬) 분리','후원 유저 전수의 (유저·그리퍼) 쌍 '+cz.pairs.toLocaleString()+'건에서 그리퍼 팔로우 시점(followingAt) vs 첫 후원 시점(sponsoredAt)을 비교. 후원하기 런칭일('+(cz.launch||'2025-12-09')+') 이전부터 팔로우한 "기존 팬"을 분리해, 후원하기 기능이 실제로 새 관계를 만들었는지 검증합니다. 전수 자동 수집('+(cz.collectedAt?cz.collectedAt.slice(0,10):'')+').')}
     <div class="grid c2">
-      <div class="card"><div class="card-head"><div class="card-title">팔로우 vs 후원, 무엇이 먼저?</div><div class="card-meta">${cz.pairs.toLocaleString()}쌍 · 후원자 ${cz.sampleUsers?cz.sampleUsers.toLocaleString()+'명 전수':'표본'}</div></div><div class="chart-wrap"><canvas id="act-cause"></canvas></div>${legend([{label:`팔로우 먼저 ${cz.followFirstPct}%`,color:C.mint},{label:`같은 날 ${cz.sameDayPct}%`,color:C.amber},{label:`후원 먼저 ${cz.sponsorFirstPct}%`,color:C.blue},{label:`팔로우 안 함 ${cz.noFollowPct}%`,color:C.dim}])}</div>
-      <div class="card" style="display:flex;flex-direction:column;justify-content:center;gap:8px">
-        <div style="font-size:48px;font-weight:800;color:var(--mint);line-height:1">${cz.followFirstPct}%</div>
-        <div style="font-size:13.5px;color:var(--text-mid);line-height:1.75">후원한 그리퍼를 <b>먼저 팔로우</b>한 뒤 후원한 비율입니다. 반대로 <b>'후원 먼저'는 ${cz.sponsorFirstPct}%</b>(${cz.sponsorFirst}건)에 불과 — 팔로우 시점이 기록된 쌍만 보면 <b>${cz.followFirstPctOfFollowed}%</b>가 팔로우 먼저입니다.<br>→ <b style="color:var(--mint)">팔로우(관계 형성)가 후원의 선행 조건</b>. 단순 상관이 아니라 <b>'팔로우 → 후원' 방향의 인과</b>로 확정됩니다.</div>
+      <div class="card"><div class="card-head"><div class="card-title">팔로우 vs 후원, 무엇이 먼저?</div><div class="card-meta">${cz.pairs.toLocaleString()}쌍 · 유저 ${(cz.sampleUsers||0).toLocaleString()}명 전수</div></div><div class="chart-wrap"><canvas id="act-cause"></canvas></div>${legend([{label:`후원먼저→팔로우 ${fmt(cz.sponsorFirst)}`,color:C.mint},{label:`같은 날 ${fmt(cz.sameDay)}`,color:C.amber},{label:`팔로우먼저·런칭후 ${fmt(cz.followPost)}`,color:C.blue},{label:`팔로우먼저·런칭전(기존팬) ${fmt(cz.followPre)}`,color:C.dim},{label:`팔로우 안 함 ${fmt(cz.noFollow)}`,color:C.violet}])}</div>
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center;gap:10px">
+        <div style="display:flex;gap:26px;flex-wrap:wrap">
+          <div><div style="font-size:40px;font-weight:800;color:var(--mint);line-height:1">${cz.sponsorToFollowConvPct}%</div><div style="font-size:12px;color:var(--text-dim);margin-top:5px;line-height:1.5">후원 → 팔로우 전환율<br><span style="color:var(--text-mid)">미팔로우 유저가 후원 뒤 팔로우 (${fmt(cz.sponsorFirst)}건)</span></div></div>
+          <div><div style="font-size:40px;font-weight:800;color:var(--amber);line-height:1">${cz.followPrePct}%</div><div style="font-size:12px;color:var(--text-dim);margin-top:5px;line-height:1.5">기존 팬 (런칭 전 팔로우)<br><span style="color:var(--text-mid)">후원하기와 무관 → 제외</span></div></div>
+        </div>
+        <div style="font-size:13px;color:var(--text-mid);line-height:1.75;margin-top:4px">예전 "선(先)팔로우"의 상당수가 실은 <b style="color:var(--amber)">런칭 전부터의 기존 팬(${cz.followPrePct}%)</b>이었습니다. 이들을 제외한 <b>후원하기 관련 ${(cz.relevantPairs||0).toLocaleString()}쌍</b> 기준: 팔로우먼저·런칭후 <b style="color:var(--blue)">${cz.followPostPctRel}%</b> · 같은날 ${cz.sameDayPctRel}% · 미팔로우 ${cz.noFollowPctRel}% · 후원먼저→팔로우 <b style="color:var(--mint)">${cz.sponsorFirstPctRel}%</b>.<br>→ <b>후원이 새 팬을 만드는 효과는 미미</b>(전환율 ${cz.sponsorToFollowConvPct}%). 대부분은 <b style="color:var(--blue)">관계(팔로우)를 먼저 맺은 뒤 후원</b> → 후원하기는 <b style="color:var(--text)">팬덤을 새로 만들기보다 기존·신규 관계를 수익화</b>하는 기능입니다.</div>
       </div>
     </div>` : ''}
     ${sectionHead('그룹별 활성도 비교','후원 · 광고적립(비후원) · 일반 유저 1인 평균','admin 개별 프로필 표본 집계. 후원 유저=최근 후원자, 광고적립=광고미션으로 젬을 모으지만 후원은 안 함, 일반=무작위 추출(장기 휴면 포함).')}
@@ -650,7 +653,7 @@ function buildActivity(){
   const ageOrder=['AGE10','AGE20','AGE30','AGE40','AGE50','AGE60','UNKNOWN'];
   if(sp.ages){ const ak=ageOrder.filter(k=>sp.ages[k]); doughnutChart('act-age', ak.map(k=>ageL[k]), ak.map(k=>sp.ages[k]), [C.dim,C.blue,C.teal,C.mint,C.amber,C.violet,C.dim].slice(0,ak.length)); }
   if(sp.gender){ const gk=Object.keys(sp.gender); doughnutChart('act-gender', gk.map(k=>genL[k]||k), gk.map(k=>sp.gender[k]), [C.pink,C.blue,C.dim,C.dim].slice(0,gk.length)); }
-  if(ACT.causality){ const cz=ACT.causality; doughnutChart('act-cause', ['팔로우 먼저','같은 날','후원 먼저','팔로우 안 함'], [cz.followFirst,cz.sameDay,cz.sponsorFirst,cz.noFollow], [C.mint,C.amber,C.blue,C.dim]); }
+  if(ACT.causality){ const cz=ACT.causality; doughnutChart('act-cause', ['후원먼저→팔로우','같은 날','팔로우먼저·런칭후','팔로우먼저·런칭전(기존팬)','팔로우 안 함'], [cz.sponsorFirst,cz.sameDay,cz.followPost,cz.followPre,cz.noFollow], [C.mint,C.amber,C.blue,C.dim,C.violet]); }
 }
 
 /* ===================== ADS (광고 수익) ===================== */
