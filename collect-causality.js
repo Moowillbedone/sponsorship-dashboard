@@ -164,18 +164,16 @@
     await Promise.all(users.slice(i, i + CONC).map(fetchUserFollows));
   }
 
-  // ---- 4) 버킷 집계 (런칭 기준 분리) ----
-  const B = { sponsorFirst: 0, sameDay: 0, followPost: 0, followPre: 0, noFollow: 0, pairs: 0 };
+  // ---- 4) 버킷 집계 (초 단위 정확 시각 비교 · 런칭 기준 분리) ----
+  const B = { sponsorFirst: 0, followPost: 0, followPre: 0, noFollow: 0, pairs: 0 };
   for (const u of users) {
     const gm = pairFirst[u]; if (!gm) continue;
     for (const g in gm) {
       const S = gm[g], F = (followMap[u] || {})[g];
       B.pairs++;
       if (F == null) { B.noFollow++; continue; }
-      const Sd = dayKST(S), Fd = dayKST(F);
-      if (Fd === Sd) B.sameDay++;
-      else if (F < S) { if (F < LAUNCH) B.followPre++; else B.followPost++; }
-      else B.sponsorFirst++;
+      if (F <= S) { if (F < LAUNCH) B.followPre++; else B.followPost++; }  // 팔로우가 후원보다 먼저(또는 동시) — 정확 시각 기준
+      else B.sponsorFirst++;                                              // 후원이 팔로우보다 먼저
     }
   }
   const p = n => B.pairs ? +(n / B.pairs * 100).toFixed(2) : 0;
@@ -187,19 +185,19 @@
   const convPct = notFollowedYet ? +(B.sponsorFirst / notFollowedYet * 100).toFixed(2) : 0;
 
   const out = {
-    method: '후원 유저 전수의 (유저·그리퍼) 쌍에 대해 팔로우 시점 vs 첫 후원 시점 비교. 후원하기 런칭일(2025-12-09) 기준으로 선(先)팔로우를 런칭 이전(기존 팬)/이후로 분리. 자동 수집.',
+    method: '후원 유저 전수의 (유저·그리퍼) 쌍에 대해 팔로우 시점 vs 첫 후원 시점을 초 단위 정확 시각으로 비교. 후원하기 런칭일(2025-12-09) 기준으로 선(先)팔로우를 런칭 이전(기존 팬)/이후로 분리. 같은 날도 정확 시각으로 순서 구분. 자동 수집.',
     collectedAt: new Date().toISOString(),
     launch: '2025-12-09',
+    precision: 'exact',
     sampleUsers: users.length,
     pairs: B.pairs,
     sponsorFirst: B.sponsorFirst, sponsorFirstPct: p(B.sponsorFirst),
-    sameDay: B.sameDay, sameDayPct: p(B.sameDay),
     followPost: B.followPost, followPostPct: p(B.followPost),
     followPre: B.followPre, followPrePct: p(B.followPre),
     noFollow: B.noFollow, noFollowPct: p(B.noFollow),
     relevantPairs: rel,
     followPostPctRel: relPct(B.followPost), sponsorFirstPctRel: relPct(B.sponsorFirst),
-    sameDayPctRel: relPct(B.sameDay), noFollowPctRel: relPct(B.noFollow),
+    noFollowPctRel: relPct(B.noFollow),
     notFollowedYet: notFollowedYet, sponsorToFollowConvPct: convPct,
     _debug: { followUrlSample: followUrl(sample), shape: shape }
   };
@@ -212,10 +210,9 @@
     + '<div style="margin-top:8px;color:#cfe0da;font-size:12.5px">쌍 ' + B.pairs.toLocaleString() + '건 · 유저 ' + users.length.toLocaleString() + '명</div>'
     + '<div style="margin-top:8px;color:#9fb4ab;font-size:12px;line-height:1.7">'
     + '① 후원먼저→팔로우 <b style="color:#3ddc97">' + B.sponsorFirst.toLocaleString() + '</b> (' + p(B.sponsorFirst) + '%)<br>'
-    + '② 같은날 ' + B.sameDay.toLocaleString() + '<br>'
-    + '③ 팔로우먼저(런칭후) ' + B.followPost.toLocaleString() + '<br>'
-    + '④ 팔로우먼저(런칭전=기존팬) <b style="color:#f5c451">' + B.followPre.toLocaleString() + '</b><br>'
-    + '⑤ 팔로우안함 ' + B.noFollow.toLocaleString() + '<br>'
+    + '② 팔로우먼저(런칭후) ' + B.followPost.toLocaleString() + '<br>'
+    + '③ 팔로우먼저(런칭전=기존팬) <b style="color:#f5c451">' + B.followPre.toLocaleString() + '</b><br>'
+    + '④ 팔로우안함 ' + B.noFollow.toLocaleString() + '<br>'
     + '<b style="color:#3ddc97">후원→팔로우 전환율 ' + convPct + '%</b> (미팔로우 유저 기준)'
     + '</div><div style="margin-top:8px;color:#3ddc97;font-size:12px">causality.json 다운로드됨 → 건무에게 전달</div>');
   window.__causalityRunning = false;
