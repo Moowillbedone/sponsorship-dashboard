@@ -625,7 +625,19 @@ function renderActivity(){
         </div>
         <div style="font-size:13px;color:var(--text-mid);line-height:1.75;margin-top:4px">예전 "선(先)팔로우"의 상당수가 실은 <b style="color:var(--amber)">런칭 전부터의 기존 팬(${cz.followPrePct}%)</b>이었습니다. 이들을 제외한 <b>후원하기 관련 ${(cz.relevantPairs||0).toLocaleString()}쌍</b> 기준(초 단위 정확 비교): 팔로우먼저·런칭후 <b style="color:var(--blue)">${cz.followPostPctRel}%</b> · 미팔로우 ${cz.noFollowPctRel}% · 후원먼저→팔로우 <b style="color:var(--mint)">${cz.sponsorFirstPctRel}%</b>.<br>→ 대부분(<b style="color:var(--blue)">${cz.followPostPctRel}%</b>)은 <b>관계(팔로우)를 먼저 맺은 뒤 후원</b>합니다. 다만 후원이 미팔로우 유저를 팔로워로 전환시키는 효과도 <b style="color:var(--mint)">${cz.sponsorToFollowConvPct}%(${fmt(cz.sponsorFirst)}건)</b> 존재 — 후원하기는 <b style="color:var(--text)">주로 기존·신규 관계를 수익화하되, 소폭의 신규 팬 전환 효과</b>도 있습니다.</div>
       </div>
-    </div>` : ''}
+    </div>
+    ${cz.daily&&cz.daily.length?`<div class="card" style="margin-top:14px">
+      <div class="card-head"><div class="card-title">팔로우·후원 선후 추이 (런칭 후)</div>
+        <div class="period-toggle">
+          <button class="ptab active" data-cztab="day">일별</button>
+          <button class="ptab" data-cztab="week">주별</button>
+          <button class="ptab" data-cztab="month">월별</button>
+        </div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="cz-trend"></canvas></div>
+      ${legend([{label:'팔로우 먼저 → 후원 (좌축)',color:C.blue},{label:'후원 먼저 → 팔로우 (우축)',color:C.mint}])}
+      <div style="font-size:11.5px;color:var(--text-dim);margin-top:8px">첫 후원일 기준 · 런칭 후 관계만(기존 팬 제외) · 두 선은 규모 차이가 커서 좌/우 축이 다릅니다.</div>
+    </div>`:''}` : ''}
     ${sectionHead('그룹별 활성도 비교','후원 · 광고적립(비후원) · 일반 유저 1인 평균','admin 개별 프로필 표본 집계. 후원 유저=최근 후원자, 광고적립=광고미션으로 젬을 모으지만 후원은 안 함, 일반=무작위 추출(장기 휴면 포함).')}
     <div class="grid c2">
       <div class="card"><div class="card-head"><div class="card-title">1인 평균 그리퍼 팔로우</div><div class="card-meta">명</div></div><div class="chart-wrap"><canvas id="act-follow"></canvas></div></div>
@@ -655,6 +667,27 @@ function buildActivity(){
   if(sp.ages){ const ak=ageOrder.filter(k=>sp.ages[k]); doughnutChart('act-age', ak.map(k=>ageL[k]), ak.map(k=>sp.ages[k]), [C.dim,C.blue,C.teal,C.mint,C.amber,C.violet,C.dim].slice(0,ak.length)); }
   if(sp.gender){ const gk=Object.keys(sp.gender); doughnutChart('act-gender', gk.map(k=>genL[k]||k), gk.map(k=>sp.gender[k]), [C.pink,C.blue,C.dim,C.dim].slice(0,gk.length)); }
   if(ACT.causality){ const cz=ACT.causality; doughnutChart('act-cause', ['후원먼저→팔로우','팔로우먼저·런칭후','팔로우먼저·런칭전(기존팬)','팔로우 안 함'], [cz.sponsorFirst,cz.followPost,cz.followPre,cz.noFollow], [C.mint,C.blue,C.dim,C.violet]); }
+  if(ACT.causality&&ACT.causality.daily&&ACT.causality.daily.length){
+    drawCzTrend();
+    document.querySelectorAll('button[data-cztab]').forEach(b=>b.onclick=()=>{ CZ_PERIOD=b.dataset.cztab; document.querySelectorAll('button[data-cztab]').forEach(x=>x.classList.toggle('active',x===b)); drawCzTrend(); });
+  }
+}
+let CZ_PERIOD='day', CZ_CHART=null;
+function drawCzTrend(){
+  const cz=ACT.causality; if(!cz||!cz.daily) return;
+  const cv=document.getElementById('cz-trend'); if(!cv) return;
+  const agg=aggPeriod(cz.daily, CZ_PERIOD, ['followFirst','sponsorFirst']);
+  const labels=agg.map(a=>CZ_PERIOD==='month'?a.key:(CZ_PERIOD==='week'?weekLabel(a.key):MD(a.key)));
+  if(CZ_CHART) CZ_CHART.destroy();
+  const ctx=cv.getContext('2d');
+  CZ_CHART=new Chart(ctx,{data:{labels,datasets:[
+    {type:'line',label:'팔로우 먼저 → 후원',data:agg.map(a=>a.followFirst),borderColor:C.blue,backgroundColor:gradient(ctx,C.blue),borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:true,yAxisID:'y'},
+    {type:'line',label:'후원 먼저 → 팔로우',data:agg.map(a=>a.sponsorFirst),borderColor:C.mint,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'}
+  ]},options:{interaction:{mode:'index',intersect:false},scales:{
+    x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},
+    y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>fmt(v)},border:{display:false},title:{display:true,text:'팔로우 먼저→후원',color:C.blue,font:{size:10}}},
+    y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)},border:{display:false},title:{display:true,text:'후원 먼저→팔로우',color:C.mint,font:{size:10}}}
+  },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}건`}}}}});
 }
 
 /* ===================== ADS (광고 수익) ===================== */

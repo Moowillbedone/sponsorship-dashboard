@@ -166,14 +166,16 @@
 
   // ---- 4) 버킷 집계 (초 단위 정확 시각 비교 · 런칭 기준 분리) ----
   const B = { sponsorFirst: 0, followPost: 0, followPre: 0, noFollow: 0, pairs: 0 };
+  const dmap = {}; // 첫 후원일(KST) -> {followFirst, sponsorFirst} · 런칭 후 관계만 (추이 차트용)
+  const bump = (d, k) => { (dmap[d] = dmap[d] || { followFirst: 0, sponsorFirst: 0 })[k]++; };
   for (const u of users) {
     const gm = pairFirst[u]; if (!gm) continue;
     for (const g in gm) {
       const S = gm[g], F = (followMap[u] || {})[g];
       B.pairs++;
       if (F == null) { B.noFollow++; continue; }
-      if (F <= S) { if (F < LAUNCH) B.followPre++; else B.followPost++; }  // 팔로우가 후원보다 먼저(또는 동시) — 정확 시각 기준
-      else B.sponsorFirst++;                                              // 후원이 팔로우보다 먼저
+      if (F <= S) { if (F < LAUNCH) B.followPre++; else { B.followPost++; bump(dayKST(S), 'followFirst'); } }  // 팔로우가 후원보다 먼저(또는 동시) · 런칭 후
+      else { B.sponsorFirst++; bump(dayKST(S), 'sponsorFirst'); }                                             // 후원이 팔로우보다 먼저
     }
   }
   const p = n => B.pairs ? +(n / B.pairs * 100).toFixed(2) : 0;
@@ -199,6 +201,7 @@
     followPostPctRel: relPct(B.followPost), sponsorFirstPctRel: relPct(B.sponsorFirst),
     noFollowPctRel: relPct(B.noFollow),
     notFollowedYet: notFollowedYet, sponsorToFollowConvPct: convPct,
+    daily: Object.keys(dmap).sort().map(d => ({ date: d, followFirst: dmap[d].followFirst, sponsorFirst: dmap[d].sponsorFirst })),
     _debug: { followUrlSample: followUrl(sample), shape: shape }
   };
 
