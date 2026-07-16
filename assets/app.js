@@ -694,6 +694,9 @@ function drawCzTrend(){
 function renderAds(){
   const sdk=ADS.sdk, ssp=ADS.ssp, cp=ADS.coupang, sk=sdk.kpi, sp=ssp.kpi;
   const eCPM = sp.totalImpression ? (sp.totalCost/sp.totalImpression*1000) : 0;
+  const sspCTR = sp.totalImpression ? sp.totalClick/sp.totalImpression*100 : 0;
+  const sspFill = sp.totalRequest ? sp.totalResponse/sp.totalRequest*100 : 0;
+  const sspRender = sp.totalResponse ? sp.totalImpression/sp.totalResponse*100 : 0;
   const sspKrw = Math.round(sp.totalCost*1400);
   const cpRev = cp ? cp.kpi.totalClientCommission : 0;
   const totalNet = sk.totalRevenue + sspKrw + cpRev;
@@ -756,6 +759,24 @@ function renderAds(){
         </div>
       </div>
     </div>
+    ${sectionHead('SSP 성과 지표','Request · Response · Impression · CTR · eCPM · Fill Rate','SSP 미디에이션 지면의 광고 서빙 지표. 요청(광고 호출)→응답(채워짐)→노출(렌더)→클릭 퍼널에서 파생 계산합니다. Fill Rate=응답÷요청, CTR=클릭÷노출, eCPM=순매체비÷노출×1000, 노출률(렌더)=노출÷응답. ※ 오퍼월(SDK)·쿠팡은 참여·구매 전환 모델이라 이 지표 체계가 적용되지 않습니다.')}
+    <div class="kpi-grid">
+      ${kpi('요청 (Request)', fmtKor(sp.totalRequest), '', `일평균 ${fmtKor(Math.round(sp.totalRequest/(ssp.daily.length||1)))}`, C.dim)}
+      ${kpi('응답 (Response)', fmtKor(sp.totalResponse), '', `요청 대비 응답`, C.blue)}
+      ${kpi('노출 (Impression)', fmt(sp.totalImpression), '회', `클릭 ${fmt(sp.totalClick)}회`, C.violet)}
+      ${kpi('Fill Rate', sspFill.toFixed(1), '%', `응답 ÷ 요청`, C.mint)}
+    </div>
+    <div class="kpi-grid" style="margin-top:14px">
+      ${kpi('CTR', sspCTR.toFixed(2), '%', `클릭 ÷ 노출`, C.mint)}
+      ${kpi('eCPM', '$'+eCPM.toFixed(2), '', `노출 1,000회당 · ≈${fmt(Math.round(eCPM*1400))}원`, C.amber)}
+      ${kpi('노출률 (렌더)', sspRender.toFixed(2), '%', `노출 ÷ 응답`, C.blue)}
+      ${kpi('클릭 (Click)', fmt(sp.totalClick), '회', `CTR ${sspCTR.toFixed(1)}%`, C.mint)}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><div class="card-title">SSP 지표 추이 (일별)</div><div class="card-meta">Fill Rate·CTR(%) / eCPM($)</div></div>
+      <div class="chart-wrap tall"><canvas id="ad-ssp-metrics"></canvas></div>
+      ${legend([{label:'Fill Rate %(좌)',color:C.mint},{label:'CTR %(좌)',color:C.amber},{label:'eCPM $(우)',color:C.violet}])}
+    </div>
     ${sectionHead('기간별 광고 매출 (SDK 오퍼월)','일 / 주 / 월 · 단위 원')}
     ${periodHTML('adsdk','매출 · AOS · iOS · 완료')}
     ${sectionHead('기간별 SSP 순매체비','일 / 주 / 월 · 단위 USD')}
@@ -793,6 +814,21 @@ function buildAds(){
     y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'$'+v.toFixed(1)},border:{display:false}},
     y1:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v)},border:{display:false}}
   },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==='순매체비'?'$'+c.parsed.y.toFixed(4):fmt(c.parsed.y)+'회'}`}}}}});
+  const mc=document.getElementById('ad-ssp-metrics');
+  if(mc){ const mx=mc.getContext('2d');
+    const fillD=ssp.daily.map(d=>d.request?+(d.response/d.request*100).toFixed(2):0);
+    const ctrD=ssp.daily.map(d=>d.impression?+(d.click/d.impression*100).toFixed(2):0);
+    const ecpmD=ssp.daily.map(d=>d.impression?+(d.cost/d.impression*1000).toFixed(3):0);
+    new Chart(mx,{data:{labels:ssp.daily.map(d=>MD(d.date)),datasets:[
+      {type:'line',label:'Fill Rate %',data:fillD,borderColor:C.mint,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y'},
+      {type:'line',label:'CTR %',data:ctrD,borderColor:C.amber,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y'},
+      {type:'line',label:'eCPM $',data:ecpmD,borderColor:C.violet,borderWidth:2,tension:.35,pointRadius:0,pointHoverRadius:4,fill:false,yAxisID:'y1'}
+    ]},options:{interaction:{mode:'index',intersect:false},scales:{
+      x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},
+      y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>v+'%'},border:{display:false}},
+      y1:{position:'right',grid:{display:false},ticks:{callback:v=>'$'+v.toFixed(1)},border:{display:false}}
+    },plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}${c.dataset.label==='eCPM $'?'':'%'}`}}}}});
+  }
   setupPeriod('adsdk', sdk.daily, [{f:'revenue',label:'매출',fmt:won},{f:'android',label:'AOS',fmt:won},{f:'ios',label:'iOS',fmt:won},{f:'complete',label:'완료',fmt:fmt}]);
   setupPeriod('adssp', ssp.daily, [{f:'cost',label:'순매체비($)',fmt:v=>'$'+fmt2(v)},{f:'impression',label:'노출',fmt:fmt},{f:'click',label:'클릭',fmt:fmt}]);
   if(ADS.coupang){
