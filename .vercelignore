@@ -1,0 +1,9 @@
+# Vercel 배포 제외 — 이 저장소는 공개 웹사이트로 서빙하지 않습니다.
+# 아래 파일들은 배포 번들에 포함되지 않습니다(= 인터넷에서 접근 불가).
+assets/
+dashboard-local.html
+README.md
+data/
+api/
+collect*.js
+sync-all.js
